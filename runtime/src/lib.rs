@@ -38,7 +38,7 @@ pub use frame_support::{
 	},
 };
 
-pub use pallet_template;
+pub use pallet_auction;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -260,7 +260,7 @@ impl pallet_sudo::Trait for Runtime {
 	type Call = Call;
 }
 
-impl pallet_template::Trait for Runtime {
+impl pallet_auction::Trait for Runtime {
     type Event = Event;
 }
 
@@ -279,7 +279,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 
-        TemplateModule: pallet_template::{Module, Call, Storage, Event<T>},
+        Auctions: pallet_auction::{Module, Call, Storage, Event<T>},
 	}
 );
 
