@@ -1,0 +1,40 @@
+[package]
+authors = ['Petr Mensik', 'Jindrich Zeleny', 'Michal Repetny']
+description = 'Simple NFT pallet for creating tokens which can be auctioned'
+edition = '2018'
+homepage = 'https://substrate.dev'
+license = 'Apache-2.0'
+name = 'pallet-nft'
+repository = 'https://github.com/polkadotters/SubAuction'
+version = '0.0.1'
+
+[package.metadata.docs.rs]
+targets = ['x86_64-unknown-linux-gnu']
+
+# alias "parity-scale-code" to "codec"
+[dependencies.codec]
+default-features = false
+features = ['derive']
+package = 'parity-scale-codec'
+version = '1.3.4'
+
+[dependencies]
+frame-support = { default-features = false, version = '2.0.0' }
+frame-system = { default-features = false, version = '2.0.0' }
+
+orml-nft = { git = 'https://github.com/open-web3-stack/open-runtime-module-library', default-features = false}
+#orml-nft = { default-features = false, version = '0.3.2' }
+
+[dev-dependencies]
+sp-core = { default-features = false, version = '2.0.0' }
+sp-io = { default-features = false, version = '2.0.0' }
+sp-runtime = { default-features = false, version = '2.0.0' }
+
+[features]
+default = ['std']
+std = [
+    'codec/std',
+    'frame-support/std',
+    'frame-system/std',
+    'orml-nft/std',
+]
