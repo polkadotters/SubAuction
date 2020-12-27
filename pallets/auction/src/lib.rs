@@ -9,8 +9,6 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-pub use orml_nft;
-
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 }

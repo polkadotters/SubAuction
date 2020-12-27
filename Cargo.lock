@@ -6582,6 +6582,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "hex-literal",
+ "orml-nft",
  "pallet-auction",
  "pallet-aura",
  "pallet-balances",

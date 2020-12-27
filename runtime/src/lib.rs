@@ -40,6 +40,7 @@ pub use frame_support::{
 
 pub use pallet_auction;
 pub use pallet_nft;
+pub use orml_nft;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -267,11 +268,13 @@ impl pallet_auction::Trait for Runtime {
 
 impl pallet_nft::Trait for Runtime {
     type Event = Event;
+}
 
-    type ClassId = u32;
-    type TokenId =  u32;
-    type ClassData = ();
-    type TokenData = ();
+impl orml_nft::Trait for Runtime {
+	type ClassId = u32;
+	type TokenId = u64;
+	type ClassData = orml_nft::ClassData;
+	type TokenData = orml_nft::TokenData;
 }
 
 construct_runtime!(
@@ -290,6 +293,7 @@ construct_runtime!(
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 
         Auctions: pallet_auction::{Module, Call, Storage, Event<T>},
+        OrmlNft: orml_nft::{Module, Storage},
         Nft: pallet_nft::{Module, Call, Storage, Event<T>},
 	}
 );
