@@ -1,19 +1,18 @@
-.PHONY: init
-init:
-	./scripts/init.sh
+init: toolchain build-full
 
-.PHONY: check
 check:
 	SKIP_WASM_BUILD=1 cargo check
 
-.PHONY: test
 test:
 	SKIP_WASM_BUILD=1 cargo test --all
 
-.PHONY: run
 run:
-	WASM_BUILD_TOOLCHAIN=nightly-2020-10-05 cargo run --release -- --dev --tmp
+	SKIP_WASM_BUILD= cargo run -- --tmp -lruntime=debug
 
-.PHONY: build
 build:
 	WASM_BUILD_TOOLCHAIN=nightly-2020-10-05 cargo build --release
+
+purge:
+	SKIP_WASM_BUILD= cargo run -- purge-chain --dev -y
+
+restart: purge run
