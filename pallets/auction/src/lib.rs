@@ -2,6 +2,7 @@
 
 use frame_support::{decl_module, decl_storage, decl_event, decl_error, dispatch, traits::Get};
 use frame_system::ensure_signed;
+use orml_traits::{AuctionHandler};
 
 #[cfg(test)]
 mod mock;
@@ -52,3 +53,5 @@ decl_module! {
 		}
 	}
 }
+
+//impl<T: Trait> AuctionHandler<T::AccountId, T::Balance, T::BlockNumber, u32> for Module<T> {}

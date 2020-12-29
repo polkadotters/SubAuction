@@ -56,6 +56,9 @@ sp-std = { default-features = false, version = '2.0.0' }
 sp-transaction-pool = { default-features = false, version = '2.0.0' }
 sp-version = { default-features = false, version = '2.0.0' }
 orml-nft = { default-features = false, version = '0.3.4' }
+orml-auction = { default-features = false, version = '0.3.2' }
+orml-traits = { default-features = false, version = '0.3.2' }
+
 
 [features]
 default = ['std']
@@ -98,4 +101,6 @@ std = [
     'sp-transaction-pool/std',
     'sp-version/std',
     'orml-nft/std',
+    'orml-auction/std',
+    'orml-traits/std',
 ]
