@@ -283,9 +283,8 @@ impl orml_auction::Trait for Runtime {
 	type Event = Event;
 	type Balance = Balance;
 	type AuctionId = u32;
-	type Handler = orml_traits::AuctionHandler<AccountId, Balance, BlockNumber, u32>;
+	type Handler = pallet_auction::SubHandler;
 	type WeightInfo = ();
-
 }
 
 construct_runtime!(
@@ -305,7 +304,7 @@ construct_runtime!(
 
         Auctions: pallet_auction::{Module, Call, Storage, Event<T>},
 		OrmlNft: orml_nft::{Module, Storage},
-		OrmlAuction: orml_auction::{Module, Storage},
+		OrmlAuction: orml_auction::{Module, Storage, Event<T>},
         Nft: pallet_nft::{Module, Call, Storage, Event<T>},
 	}
 );

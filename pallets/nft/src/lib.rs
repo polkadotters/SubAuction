@@ -12,7 +12,6 @@ pub trait Trait: frame_system::Trait + orml_nft::Trait {
 
 decl_storage! {
 	trait Store for Module<T: Trait> as NftStore {
-		Something get(fn something): Option<u32>;
 	}
 }
 

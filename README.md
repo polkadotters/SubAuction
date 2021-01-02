@@ -123,28 +123,3 @@ RUST_LOG=debug RUST_BACKTRACE=1 ./target/release/node-template -lruntime=debug -
 ### NFT tokens pallet 
 
 ### Auction pallet
-
-### Polkadot JS Types
-```json
-{
-  "Address": "AccountId",
-  "LookupSource": "AccountId",
-  "ClassId": "u64",
-  "TokenId": "u64",
-  "ClassData": "u32",
-  "TokenData": "u32",
-  "ClassInfo": {
-    "metadata": "Vec<u8>",
-    "total_issuance": "TokenId",
-    "owner": "AccountId",
-    "data": "ClassData"
-  },
-  "TokenInfo": {
-    "metadata": "Vec<u8>",
-    "owner": "AccountId",
-    "data": "TokenData"
-  },
-  "ClassInfoOf": "ClassInfo",
-  "TokenInfoOf": "TokenInfo"
-}
-```

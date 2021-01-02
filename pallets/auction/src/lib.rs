@@ -2,13 +2,15 @@
 
 use frame_support::{decl_module, decl_storage, decl_event, decl_error, dispatch, traits::Get};
 use frame_system::ensure_signed;
-use orml_traits::{AuctionHandler};
+use orml_traits::{AuctionHandler, OnNewBidResult};
 
 #[cfg(test)]
 mod mock;
 
 #[cfg(test)]
 mod tests;
+
+pub struct SubHandler;
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
@@ -54,4 +56,17 @@ decl_module! {
 	}
 }
 
-//impl<T: Trait> AuctionHandler<T::AccountId, T::Balance, T::BlockNumber, u32> for Module<T> {}
+impl <AccountId, Balance, BlockNumber, AuctionId> AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for SubHandler {
+	fn on_new_bid(
+		now: BlockNumber,
+		id: AuctionId,
+		new_bid: (AccountId, Balance),
+		last_bid: Option<(AccountId, Balance)>,
+	) -> OnNewBidResult<BlockNumber> {
+		unimplemented!();
+	}
+
+	fn on_auction_ended(id: AuctionId, winner: Option<(AccountId, Balance)>) {
+		unimplemented!();
+	}
+} 
