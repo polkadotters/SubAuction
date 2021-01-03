@@ -7,6 +7,9 @@ everybody compete and bid for the items of your choice.
 !["Auction
 Image"](https://img.etimg.com/thumb/width-600,height-400,imgsize-113275,resizemode-1,msid-76076103/news/politics-and-nation/auction-of-specially-plucked-teas-on-june-22-to-commemorate-international-tea-day.jpg)
 
+## Implementation of the NFT token
+You can find more information about our implementation and JSON metadata NFT format in our [docs](nft.md).
+
 ## Design philosophy
 
 Aim of this project is to create a platform which will support different kinds of auction for the upcoming prime time of the
@@ -73,7 +76,6 @@ being auctioned at the same time. So, for example, a bidder can say he will pay 
 at the same time. 
 
 ## Developer instructions
-
 
 ### Build
 

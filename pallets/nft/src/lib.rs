@@ -31,7 +31,7 @@ decl_module! {
 		}
 
 		#[weight = 1000]
-		pub fn mint(origin, class_id: <T as orml_nft::Trait>::ClassId, metadata: CID, 
+		pub fn mint(origin, class_id: <T as orml_nft::Trait>::ClassId, metadata: CID,
                            token_data: <T as orml_nft::Trait>::TokenData) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			let class_info = orml_nft::Module::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;

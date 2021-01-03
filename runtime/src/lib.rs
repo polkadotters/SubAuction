@@ -270,16 +270,16 @@ impl pallet_nft::Trait for Runtime {
 impl orml_nft::Trait for Runtime {
 	type ClassId = u64;
 	type TokenId = u64;
-	type ClassData = u32;
-	type TokenData = u32;
+	type ClassData = ();
+	type TokenData = ();
 }
 
-impl pallet_auction::Trait for Runtime {
-	type Event = Event;
-	type Balance = Balance;
-	type AuctionId = u32;
-	type Handler = pallet_auction::SubHandler;
-}
+// impl pallet_auction::Trait for Runtime {
+// 	type Event = Event;
+// 	type Balance = Balance;
+// 	type AuctionId = u32;
+// 	type Handler = pallet_auction::SubHandler;
+// }
 
 construct_runtime!(
 	pub enum Runtime where
@@ -296,7 +296,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 
-        Auctions: pallet_auction::{Module, Call, Storage, Event<T>},
+        //Auctions: pallet_auction::{Module, Call, Storage, Event<T>},
 		OrmlNft: orml_nft::{Module, Storage},
         Nft: pallet_nft::{Module, Call, Storage, Event<T>},
 	}
