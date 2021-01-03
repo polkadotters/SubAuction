@@ -1,16 +1,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 // Used for encoding/decoding into scale
-// FullCodec useful for genericcs - A marker trait that tells the compiler that a type encode to the same representation as another type
-use codec::{FullCodec, Encode, Decode};
-use frame_support::{decl_module, decl_storage, decl_event, decl_error, dispatch, Parameter,};
+use codec::{Encode, Decode};
+use frame_support::{ensure, decl_module, decl_storage, decl_event, decl_error, Parameter};
 use frame_system::ensure_signed;
 use sp_runtime::{
-	traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member},
+	traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, MaybeDisplay},
 	DispatchError, DispatchResult, RuntimeDebug,
 };
-use sp_std::{result,
-			 fmt::Debug};
+use sp_std::{fmt::Debug, result};
 
 #[cfg(test)]
 mod mock;
@@ -53,12 +51,14 @@ pub enum AuctionType {
 }
 
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
-#[derive(Encode, Decode, RuntimeDebug)]
+#[derive(Encode, Decode, RuntimeDebug, Clone)]
 pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 	pub bid: Option<(AccountId, Balance)>,
 	pub start: BlockNumber,
 	pub end: BlockNumber,
 	pub auction_type: AuctionType,
+	pub owner: AccountId,
+	// I suppose token that needs to be auctioned needs to be passed here as well - with some checks afterwards
 
 	// auction configuration
 	pub no_identity_allowed: bool,
@@ -69,19 +69,78 @@ pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 
 pub trait Auction<AccountId, BlockNumber> {
 	/// The id of an AuctionInfo
-	type AuctionId: FullCodec + Default + Copy + Eq + PartialEq + MaybeSerializeDeserialize + Bounded + Debug;
+	type AuctionId: Default + Copy + Eq + PartialEq + MaybeSerializeDeserialize + Bounded + Debug;
 	/// The price to bid.
-	type Balance: AtLeast32Bit + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
+	type Balance: AtLeast32Bit + Copy + MaybeSerializeDeserialize + Debug + Default;
+	// Account Id
+	type AccountId: Parameter + Member + MaybeSerializeDeserialize + Debug + MaybeDisplay + Ord + Default;
 
+	fn new_auction(&self, info: AuctionInfo<AccountId, Self::Balance, BlockNumber>) -> result::Result<Self::AuctionId, DispatchError>;
 	/// The auction info of `id`
 	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<AccountId, Self::Balance, BlockNumber>>;
 	/// Update the auction info of `id` with `info`
 	fn update_auction(id: Self::AuctionId, info: AuctionInfo<AccountId, Self::Balance, BlockNumber>) -> DispatchResult;
-	/// Create new auction with specific startblock and endblock, return the id
-	/// of the auction
-	fn new_auction(start: BlockNumber, end: Option<BlockNumber>) -> result::Result<Self::AuctionId, DispatchError>;
 	/// Remove auction by `id`
 	fn remove_auction(id: Self::AuctionId);
+}
+
+pub struct CommonAuction<T> {
+	t: T
+}
+pub struct EnglishAuction<T> {
+	default_auction: CommonAuction<T>
+}
+
+impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for CommonAuction<T> {
+	type AuctionId = T::AuctionId;
+	type Balance = T::Balance;
+	type AccountId = T::AccountId;
+
+	fn new_auction(&self, info: AuctionInfo<Self::AccountId, Self::Balance, T::BlockNumber>) -> result::Result<Self::AuctionId, DispatchError> {
+		ensure!(info.start <T::block_number(), Error::<T>::AuctionStartAlreadyPassed);
+		let auction_id = <AuctionsIndex<T>>::try_mutate(|x| -> result::Result<Self::AuctionId, DispatchError> {
+			let id = *x;
+			ensure!(id != T::AuctionId::max_value(), Error::<T>::NoAvailableAuctionId)
+			*x += One::one();
+			Ok(id)
+		});
+		<Auctions<T>>::insert(auction_id, info);
+		auction_id
+	}
+
+	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
+		unimplemented!()
+	}
+
+	fn update_auction(id: Self::AuctionId, info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>) -> DispatchResult {
+		unimplemented!()
+	}
+
+	fn remove_auction(id: Self::AuctionId) {
+		unimplemented!()
+	}
+}
+
+impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for EnglishAuction<T> {
+	type AuctionId = T::AuctionId;
+	type Balance = T::Balance;
+	type AccountId = T::AccountId;
+
+	fn new_auction(&self, info: AuctionInfo<Self::AccountId, Self::Balance, T::BlockNumber>) -> result::Result<Self::AuctionId, DispatchError> {
+		self.default_auction.new_auction(info)
+	}
+
+	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
+		unimplemented!()
+	}
+
+	fn update_auction(id: Self::AuctionId, info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>) -> DispatchResult {
+		unimplemented!()
+	}
+
+	fn remove_auction(id: Self::AuctionId) {
+		unimplemented!()
+	}
 }
 
 /// The result of bid handling.
@@ -127,11 +186,11 @@ decl_event!(
 		<T as Trait>::AuctionId,
 	{
 		// Auction created
-		Created(AccountId, AccountId),
+		AuctionCreated(AccountId, AuctionId),
 		/// A bid is placed
 		Bid(AuctionId, AccountId, Balance),
 		//
-		Concluded(AuctionId),
+		AuctionConcluded(AuctionId),
 	}
 );
 
@@ -143,15 +202,54 @@ decl_error! {
 		BidNotAccepted,
 		InvalidBidPrice,
 		NoAvailableAuctionId,
+		AuctionStartAlreadyPassed,
+		NonExistingAuctionType,
 	}
 }
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-
 		type Error = Error<T>;
 
 		fn deposit_event() = default;
+
+		#[weight = 1000]
+		fn new_auction(origin, auction_info: AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>) -> DispatchResult {
+				//-> DispatchResult<T::AuctionId, DispatchError> {
+			let sender = ensure_signed(origin)?;
+			let updated_info = auction_info.clone().owner = sender;
+			let auction_id = Self::new_auction(updated_info);
+			Self::deposit_event(RawEvent::AuctionCreated(sender, auction_id));
+			auction_id
+		}
+	}
+}
+
+impl <T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
+	type AuctionId = T::AuctionId;
+	type Balance = T::Balance;
+	type AccountId = T::AccountId;
+
+	fn new_auction(&self, auction_info: AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>) -> result::Result<Self::AuctionId, DispatchError> {
+		match auction_info.auction_type {
+			AuctionType::English => {
+				let english_auction = EnglishAuction::<T> {default_auction: CommonAuction { t: T as frame_system::Trait}};
+				english_auction.new_auction(auction_info)
+			}
+			_ => Error::<T>::NonExistingAuctionType,
+		}
+	}
+
+	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
+		unimplemented!()
+	}
+
+	fn update_auction(id: Self::AuctionId, info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>) -> DispatchResult {
+		unimplemented!()
+	}
+
+	fn remove_auction(id: Self::AuctionId) {
+		unimplemented!()
 	}
 }
 
