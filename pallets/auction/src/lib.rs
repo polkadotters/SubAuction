@@ -97,7 +97,8 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for CommonAuction<T> {
 	type AccountId = T::AccountId;
 
 	fn new_auction(&self, info: AuctionInfo<Self::AccountId, Self::Balance, T::BlockNumber>) -> result::Result<Self::AuctionId, DispatchError> {
-		ensure!(info.start <T::block_number(), Error::<T>::AuctionStartAlreadyPassed);
+		let current_block_number = frame_system::Module::<T>::block_number();
+		ensure!(info.start <= current_block_number, Error::<T>::AuctionStartAlreadyPassed);
 		let auction_id = <AuctionsIndex<T>>::try_mutate(|x| -> result::Result<Self::AuctionId, DispatchError> {
 			let id = *x;
 			ensure!(id != T::AuctionId::max_value(), Error::<T>::NoAvailableAuctionId)
