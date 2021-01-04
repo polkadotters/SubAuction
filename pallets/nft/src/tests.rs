@@ -22,7 +22,7 @@ mod nfc {
 impl_outer_event! {
 	pub enum Event for Test {
 		frame_system<T>,
-		nfc<T>,
+		nft<T>,
 	}
 }
 
@@ -67,7 +67,7 @@ impl Trait for Test {
 	type Event = Event;
 }
 
-type NfcModule = Module<Test>;
+type NftModule = Module<Test>;
 type System = frame_system::Module<Test>;
 
 // Build genesis storage according to the mock runtime.
