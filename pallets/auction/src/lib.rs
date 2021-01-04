@@ -215,23 +215,21 @@ decl_module! {
 		fn deposit_event() = default;
 
 		#[weight = 1000]
-		fn new_auction(origin, auction_info: AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>) -> DispatchResult {
+		fn new_auction(origin, auction_info: AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>) -> result::Result<T::AuctionId, DispatchError> {
 				//-> DispatchResult<T::AuctionId, DispatchError> {
 			let sender = ensure_signed(origin)?;
-			let updated_info = auction_info.clone().owner = sender;
-			let auction_id = Self::new_auction(updated_info);
+			let mut updated_info = auction_info.clone();
+			updated_info.owner = sender;
+			let auction_id = Self::create_auction(updated_info)?;
 			Self::deposit_event(RawEvent::AuctionCreated(sender, auction_id));
-			auction_id
+			Ok(auction_id)
 		}
 	}
 }
 
-impl <T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
-	type AuctionId = T::AuctionId;
-	type Balance = T::Balance;
-	type AccountId = T::AccountId;
+impl <T: Trait> Module<T> {
 
-	fn new_auction(&self, auction_info: AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>) -> result::Result<Self::AuctionId, DispatchError> {
+	fn create_auction(auction_info: AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>) -> result::Result<T::AuctionId, DispatchError> {
 		match auction_info.auction_type {
 			AuctionType::English => {
 				let english_auction = EnglishAuction::<T> {default_auction: CommonAuction { t: T as frame_system::Trait}};
@@ -241,15 +239,15 @@ impl <T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
 		}
 	}
 
-	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
+	fn auction_info(id: T::AuctionId) -> Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>> {
 		unimplemented!()
 	}
 
-	fn update_auction(id: Self::AuctionId, info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>) -> DispatchResult {
+	fn update_auction(id: T::AuctionId, info: AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>) -> DispatchResult {
 		unimplemented!()
 	}
 
-	fn remove_auction(id: Self::AuctionId) {
+	fn remove_auction(id: T::AuctionId) {
 		unimplemented!()
 	}
 }
