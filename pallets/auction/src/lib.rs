@@ -8,7 +8,7 @@ use sp_runtime::{
 	traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, MaybeDisplay},
 	DispatchError, RuntimeDebug,
 };
-use sp_std::{fmt::Debug, result};
+use sp_std::{fmt::Debug, result, vec::Vec};
 
 #[cfg(test)]
 mod mock;
@@ -19,7 +19,7 @@ mod tests;
 decl_storage! {
 	trait AuctionStore for Module<T: Trait> as AuctionModule {
 		/// Stores on-going and future auctions. Closed auction are removed.
-		pub Auctions get(fn auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
+		pub Auctions get(fn auctions): double_map hasher(twox_64_concat) T::AuctionId, hasher(twox_64_concat) AuctionType => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
 
 		/// Track the next auction ID.
 		pub AuctionsIndex get(fn auctions_index): T::AuctionId;
@@ -67,14 +67,14 @@ decl_module! {
 		fn create_auction(origin, auction_info: AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>) {
 			let sender = ensure_signed(origin)?;
 
-			/* match auction_info.auction_type {
-				AuctionType::English => {
-					let english_auction = EnglishAuction::<T> {default_auction: CommonAuction { t: T as frame_system::Trait}};
-					english_auction.new_auction(auction_info)
-
-				}
-				_ => Error::<T>::NonExistingAuctionType, 
-			} */
+			//  match auction_info.auction_type {
+			// 	AuctionType::English => {
+			// 		let english_auction = EnglishAuction::<T> {default_auction: CommonAuction { t: T as frame_system::Trait}};
+			// 		english_auction.new_auction(auction_info)?;
+			//
+			// 	}
+			// 	_ => Error::<T>::NonExistingAuctionType,
+			// }
 		}
 	}
 }
@@ -90,8 +90,7 @@ pub enum AuctionType {
 
 pub struct SubHandler;
 
-#[cfg_attr(feature = "std", derive(PartialEq, Eq))]
-#[derive(Encode, Decode, RuntimeDebug, Clone)]
+#[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq)]
 pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 	pub name: Vec<u8>,
 	pub owner: AccountId,
@@ -166,7 +165,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for CommonAuction<T> {
 			*x += One::one();
 			Ok(id)
 		})?;
-		<Auctions<T>>::insert(auction_id, info);
+		<Auctions<T>>::insert(auction_id, info.auction_type, info);
 		Ok(auction_id)
 	}
 
