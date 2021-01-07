@@ -49,9 +49,9 @@ impl system::Trait for Test {
 	type SystemWeightInfo = ();
 }
 
-impl Trait for Test {
+/* impl Trait for Test {
 	type Event = ();
-}
+} */
 
 pub type TemplateModule = Module<Test>;
 

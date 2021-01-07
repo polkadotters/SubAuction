@@ -30,7 +30,7 @@ pub use pallet_timestamp::Call as TimestampCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use sp_runtime::{Permill, Perbill};
 pub use frame_support::{
-	construct_runtime, parameter_types, StorageValue,
+	construct_runtime, parameter_types, StorageValue, WeightInfo,
 	traits::{KeyOwnerProofSystem, Randomness},
 	weights::{
 		Weight, IdentityFee,
@@ -283,8 +283,7 @@ impl orml_auction::Trait for Runtime {
 	type Event = Event;
 	type Balance = Balance;
 	type AuctionId = u32;
-	type Handler = pallet_auction::SubHandler;
-	type WeightInfo = ();
+	type Handler = AuctionHandler;
 }
 
 construct_runtime!(
