@@ -53,7 +53,6 @@ decl_storage! {
 		/// Track the next auction ID.
 		pub AuctionsIndex get(fn auctions_index): T::AuctionId;
 
-		/// Index auctions by end time.
 		pub AuctionEndTime get(fn auction_end_time): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) T::AuctionId => Option<()>;
 	}
 }
@@ -93,7 +92,7 @@ decl_module! {
 		fn deposit_event() = default;
 
 		#[weight=0]
-		fn create_auction(origin, auction_info: PublicAuctionInfo<T::AccountId, T::Balance, T::BlockNumber>) {
+		fn create_auction(origin, auction_info: AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>) {
 			let sender = ensure_signed(origin)?;
 
 			 match auction_info.auction_type {
@@ -138,6 +137,13 @@ impl<T: Trait> Auction<T::AccountId, T::Balance, T::BlockNumber> for AuctionInfo
 		unimplemented!()
 	}
 }
+
+impl<T: Trait> Auction<T::AccountId, T::Balance, T::BlockNumber> for EnglishAuctionInfo<T::AccountId, T::Balance, T::BlockNumber> {
+	type AuctionId = T::AuctionId;
+	type Balance = T::Balance;
+	type AccountId = T::AccountId;
+}
+
 
 // impl<T: Trait> CommonAuction<T::AccountId, T::BlockNumber> {
 // 	type AuctionId = T::AuctionId;

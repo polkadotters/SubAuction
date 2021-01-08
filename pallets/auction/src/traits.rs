@@ -18,15 +18,6 @@ pub enum AuctionType {
 pub struct SubHandler;
 
 #[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq)]
-pub struct PublicAuctionInfo<AccountId, Balance, BlockNumber> {
-}
-
-
-pub trait EnglishAuction<AccountId, Balance, BlockNumber> {
-}
-
-
-#[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq)]
 pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 	pub name: Vec<u8>,
 	pub owner: AccountId,
@@ -42,6 +33,24 @@ pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 	pub private: bool,
 	pub max_participants: u128,
 }
+
+#[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq)]
+pub struct EnglishAuctionInfo<AccountId, Balance, BlockNumber> {
+	pub name: Vec<u8>,
+	pub owner: AccountId,
+	pub bid: Option<(AccountId, Balance)>,
+	pub start: BlockNumber,
+	pub end: BlockNumber,
+	pub auction_type: AuctionType,
+	// I suppose token that needs to be auctioned needs to be passed here as well - with some checks afterwards
+
+	// auction configuration
+	pub no_identity_allowed: bool,
+	pub minimal_bid: Balance,
+	pub private: bool,
+	pub max_participants: u128,
+}
+
 pub trait Auction<AccountId, Balance, BlockNumber> {
 	type AuctionId: Default + Copy + Eq + PartialEq + MaybeSerializeDeserialize + Bounded + Debug;
 	type Balance: AtLeast32Bit + Copy + MaybeSerializeDeserialize + Debug + Default;
