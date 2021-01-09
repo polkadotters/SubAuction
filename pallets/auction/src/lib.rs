@@ -28,6 +28,8 @@ MaybeSerializeDeserialize - type that implements Serialize, DeserializeOwned and
 Bounded - numbers which have upper and lower bounds (so, basically all primitive types???)
  */
 
+ type AuctionInfoOf<T> = AuctionInfo<<T as frame_system::Trait>::AccountId, <T as Trait>::Balance, <T as frame_system::Trait>::BlockNumber>;
+
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 

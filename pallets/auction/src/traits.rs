@@ -30,8 +30,6 @@ pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 	pub max_participants: u32,
 }
 
-type AuctionInfoOf<T> = AuctionInfo<<T as frame_system::Trait>::AccountId, <T as Trait>::Balance, <T as frame_system::Trait>::BlockNumber>;
-
 /// Abstraction over a simple auction system.
 pub trait Auction<AccountId, BlockNumber> {
 	/// The id of an AuctionInfo
