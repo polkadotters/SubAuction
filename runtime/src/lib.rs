@@ -278,6 +278,7 @@ impl pallet_auction::Trait for Runtime {
 	type Event = Event;
 	type Balance = Balance;
 	type AuctionId = u32;
+	type Currency = Balances;
 }
 
 construct_runtime!(

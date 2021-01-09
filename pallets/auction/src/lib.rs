@@ -1,6 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(unused)]
 // Used for encoding/decoding into scale
+use codec::{Encode, Decode};
 use frame_support::{traits::{LockableCurrency, LockIdentifier, Currency, WithdrawReason, WithdrawReasons},
 					Parameter, decl_error, decl_event, decl_module, decl_storage, ensure, dispatch::{DispatchResult, DispatchError}};
 use frame_system::ensure_signed;
@@ -38,21 +39,20 @@ pub trait Trait: frame_system::Trait {
 
 	// Currency
 	type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
-
-	// Account Id
-	type AccountId: Parameter + Member + MaybeSerializeDeserialize + Debug + MaybeDisplay + Ord + Default;
 }
-
-type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
 
 decl_storage! {
 	trait AuctionStore for Module<T: Trait> as AuctionModule {
 		/// Stores on-going and future auctions. Closed auction are removed.
-		pub Auctions get(fn auctions): double_map hasher(twox_64_concat) T::AuctionId, hasher(twox_64_concat) AuctionType => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
+		pub EnglishAuctions get(fn english_auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfoOf<T>>;
+
+		/// Stores on-going and future auctions. Closed auction are removed.
+		pub DutchAuctions get(fn dutch_auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfoOf<T>>;
 
 		/// Track the next auction ID.
 		pub AuctionsIndex get(fn auctions_index): T::AuctionId;
 
+		/// Index auctions by end time.
 		pub AuctionEndTime get(fn auction_end_time): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) T::AuctionId => Option<()>;
 	}
 }
@@ -95,24 +95,17 @@ decl_module! {
 		fn create_auction(origin, auction_info: AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>) {
 			let sender = ensure_signed(origin)?;
 
-			 match auction_info.auction_type {
-				AuctionType::English => {
-					let english_auction = AuctionInfo::<T::AccountId, T::Balance, T::BlockNumber> {};
-					english_auction.new_auction(auction_info)?;
-					Ok(())
-				}
-				_ => Error::<T>::NonExistingAuctionType,
-			}
+			<Module<T>>::new_auction(auction_info)?;
 		}
 	}
 }
 
-impl<T: Trait> Auction<T::AccountId, T::Balance, T::BlockNumber> for AuctionInfo<T::AccountId, T::Balance, T::BlockNumber> {
+impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T>{
 	type AuctionId = T::AuctionId;
 	type Balance = T::Balance;
 	type AccountId = T::AccountId;
 
-	fn new_auction(&self, info: AuctionInfo<Self::AccountId, Self::Balance, T::BlockNumber>) -> result::Result<Self::AuctionId, DispatchError> {
+	fn new_auction(info: AuctionInfo<Self::AccountId, Self::Balance, T::BlockNumber>) -> result::Result<Self::AuctionId, DispatchError> {
 		let current_block_number = frame_system::Module::<T>::block_number();
 		ensure!(info.start <= current_block_number, Error::<T>::AuctionStartAlreadyPassed);
 		let auction_id = <AuctionsIndex<T>>::try_mutate(|x| -> result::Result<Self::AuctionId, DispatchError> {
@@ -121,7 +114,16 @@ impl<T: Trait> Auction<T::AccountId, T::Balance, T::BlockNumber> for AuctionInfo
 			*x += One::one();
 			Ok(id)
 		})?;
-		<Auctions<T>>::insert(auction_id, info.auction_type, info);
+
+		match info.auction_type {
+			AuctionType::English => {
+				<EnglishAuctions<T>>::insert(auction_id, info);	
+			}
+			AuctionType::Dutch => {
+				<DutchAuctions<T>>::insert(auction_id, info);
+			}
+			_ => ()
+		}
 		Ok(auction_id)
 	}
 
@@ -137,63 +139,3 @@ impl<T: Trait> Auction<T::AccountId, T::Balance, T::BlockNumber> for AuctionInfo
 		unimplemented!()
 	}
 }
-
-impl<T: Trait> Auction<T::AccountId, T::Balance, T::BlockNumber> for EnglishAuctionInfo<T::AccountId, T::Balance, T::BlockNumber> {
-	type AuctionId = T::AuctionId;
-	type Balance = T::Balance;
-	type AccountId = T::AccountId;
-}
-
-
-// impl<T: Trait> CommonAuction<T::AccountId, T::BlockNumber> {
-// 	type AuctionId = T::AuctionId;
-// 	type Balance = T::Balance;
-// 	type AccountId = T::AccountId;
-//
-// 	fn new_auction(&self, info: AuctionInfo<Self::AccountId, Self::Balance, T::BlockNumber>) -> result::Result<Self::AuctionId, DispatchError> {
-// 		let current_block_number = frame_system::Module::<T>::block_number();
-// 		ensure!(info.start <= current_block_number, Error::<T>::AuctionStartAlreadyPassed);
-// 		let auction_id = <AuctionsIndex<T>>::try_mutate(|x| -> result::Result<Self::AuctionId, DispatchError> {
-// 			let id = *x;
-// 			ensure!(id != T::AuctionId::max_value(), Error::<T>::NoAvailableAuctionId);
-// 			*x += One::one();
-// 			Ok(id)
-// 		})?;
-// 		<Auctions<T>>::insert(auction_id, info.auction_type, info);
-// 		Ok(auction_id)
-// 	}
-//
-// 	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
-// 		unimplemented!()
-// 	}
-//
-// 	fn update_auction(id: Self::AuctionId, info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>) -> DispatchResult {
-// 		unimplemented!()
-// 	}
-//
-// 	fn remove_auction(id: Self::AuctionId) {
-// 		unimplemented!()
-// 	}
-// }
-
-// impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for EnglishAuction<T> {
-// 	type AuctionId = T::AuctionId;
-// 	type Balance = T::Balance;
-// 	type AccountId = T::AccountId;
-//
-// 	fn new_auction(&self, info: AuctionInfo<Self::AccountId, Self::Balance, T::BlockNumber>) -> result::Result<Self::AuctionId, DispatchError> {
-// 		self.default_auction.new_auction(info)
-// 	}
-//
-// 	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
-// 		unimplemented!()
-// 	}
-//
-// 	fn update_auction(id: Self::AuctionId, info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>) -> DispatchResult {
-// 		unimplemented!()
-// 	}
-//
-// 	fn remove_auction(id: Self::AuctionId) {
-// 		unimplemented!()
-// 	}
-// }
