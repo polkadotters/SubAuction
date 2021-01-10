@@ -12,6 +12,9 @@ pub trait Trait: frame_system::Trait + orml_nft::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 }
 
+pub type TokenIdOf<T> = <T as orml_nft::Trait>::TokenId;
+pub type ClassIdOf<T> = <T as orml_nft::Trait>::ClassId;
+
 decl_storage! {
 	trait Store for Module<T: Trait> as NftStore {
 	}

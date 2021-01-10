@@ -40,16 +40,12 @@ pub trait Trait: frame_system::Trait + pallet_nft::Trait {
 
 	// Currency
 	type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
-
-	// Definition of the tokenId token from the Nft pallet
-	type NftTokenId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
-
-	// Definition of token classId from the Nft pallet
-	type NftClassId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
 }
 
+pub type NftClassIdOf<T> = pallet_nft::ClassIdOf<T>;
+pub type NftTokenIdOf<T> = pallet_nft::TokenIdOf<T>;
 pub type AuctionInfoOf<T> = AuctionInfo<<T as frame_system::Trait>::AccountId, <T as Trait>::Balance, <T as frame_system::Trait>::BlockNumber,
-	<T as Trait>::NftClassId, <T as Trait>::NftTokenId>;
+	NftClassIdOf<T>, NftTokenIdOf<T>>;
 
 decl_storage! {
 	trait AuctionStore for Module<T: Trait> as AuctionModule {
@@ -119,10 +115,16 @@ decl_module! {
 			let sender = ensure_signed(origin)?;
 			<Module<T>>::bid(sender, id, value)?;
 		}
+
+		#[weight=0]
+		fn get_auction_types(origin) {
+			let sender = ensure_signed(origin)?;
+
+		}
 	}
 }
 
-impl<T: Trait> Auction<T::AccountId, T::BlockNumber, T::NftClassId, T::NftTokenId> for Module<T>{
+impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenIdOf<T>> for Module<T>{
 	type AuctionId = T::AuctionId;
 	type Balance = T::Balance;
 	type AccountId = T::AccountId;
@@ -186,8 +188,8 @@ impl<T: Trait> Module<T> {
 		let current_block_number = frame_system::Module::<T>::block_number();
 		ensure!(auction.start <= current_block_number, Error::<T>::AuctionStartTimeAlreadyPassed);
 		ensure!(auction.start != Zero::zero() && auction.end != Zero::zero() && !auction.name.is_empty(), Error::<T>::BadAuctionConfiguration);
-		// let is_owner = pallet_nft::Module::<T>::is_owner(&auction.owner, auction.token_id);
-		// ensure!(is_owner, Error::<T>::NotAnAuctionOnwer);
+		let is_owner = pallet_nft::Module::<T>::is_owner(&auction.owner, auction.token_id);
+		ensure!(is_owner, Error::<T>::NotAnAuctionOnwer);
 		Ok(())
 	}
 

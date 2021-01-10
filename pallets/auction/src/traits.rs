@@ -4,15 +4,21 @@ use sp_runtime::{
 	traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, MaybeDisplay},
 	RuntimeDebug
 };
-use sp_std::{fmt::Debug, result, vec::Vec};
+use sp_std::{fmt::{Display, Debug, Formatter}, result, vec::Vec};
 
-#[derive(Encode, Decode, Clone, Copy, RuntimeDebug, PartialEq, Eq)]
+#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum AuctionType {
 	English,
 	Candle,
 	Dutch,
 	TopUp,
 	FixedSwap,
+}
+
+impl Display for AuctionType {
+	fn fmt(&self, f: &mut Formatter) -> sp_std::fmt::Result {
+		write!(f, "{:?}", self)
+	}
 }
 
 impl Default for AuctionType {
