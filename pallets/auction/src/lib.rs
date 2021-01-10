@@ -87,10 +87,11 @@ decl_error! {
 	pub enum Error for Module<T: Trait> {
 		AuctionNotExist,
 		AuctionNotStarted,
+		AuctionAlreadyStarted,
 		BidNotAccepted,
 		InvalidBidPrice,
 		NoAvailableAuctionId,
-		AuctionStartAlreadyPassed,
+		AuctionStartTimeAlreadyPassed,
 		NonExistingAuctionType,
 		BadAuctionConfiguration,
 		NotAnAuctionOnwer,
@@ -153,8 +154,13 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, T::NftClassId, T::NftTokenI
 		unimplemented!()
 	}
 
-	fn remove_auction(id: Self::AuctionId) {
-		<EnglishAuctions<T>>::remove(id)
+	fn remove_auction(id: Self::AuctionId) -> DispatchResult {
+		let current_block_number = frame_system::Module::<T>::block_number();
+		if let Some(auction) = Self::english_auctions(id) {
+			ensure!(current_block_number < auction.start, Error::<T>::AuctionAlreadyStarted);
+		}
+		<EnglishAuctions<T>>::remove(id);
+		Ok(())
 	}
 
 	fn bid(bidder: Self::AccountId, id: Self::AuctionId, value: Self::Balance) -> DispatchResult {
@@ -172,7 +178,7 @@ impl<T: Trait> Module<T> {
 
 	fn check_new_auction(auction: AuctionInfoOf<T>) -> DispatchResult {
 		let current_block_number = frame_system::Module::<T>::block_number();
-		ensure!(auction.start <= current_block_number, Error::<T>::AuctionStartAlreadyPassed);
+		ensure!(auction.start <= current_block_number, Error::<T>::AuctionStartTimeAlreadyPassed);
 		ensure!(auction.start != Zero::zero() && auction.end != Zero::zero() && !auction.name.is_empty(), Error::<T>::BadAuctionConfiguration);
 		let is_owner = orml_nft::Module::<T>::is_owner(&auction.owner, auction.token_id);
 		ensure!(is_owner, Error::<T>::NotAnAuctionOnwer);
