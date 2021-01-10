@@ -151,7 +151,11 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, T::NftClassId, T::NftTokenI
 	}
 
 	fn update_auction(id: Self::AuctionId, info: AuctionInfoOf<T>) -> DispatchResult {
-		unimplemented!()
+		<EnglishAuctions<T>>::try_mutate(id, |auction| -> DispatchResult {
+			ensure!(auction.is_some(), Error::<T>::AuctionNotExist);
+			*auction = Option::Some(info);
+			Ok(())
+		})
 	}
 
 	fn remove_auction(id: Self::AuctionId) -> DispatchResult {
