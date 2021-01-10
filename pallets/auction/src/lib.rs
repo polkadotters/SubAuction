@@ -107,9 +107,11 @@ decl_module! {
 		#[weight=0]
 		fn create_auction(origin, auction_info: AuctionInfoOf<T>) {
 			let sender = ensure_signed(origin)?;
-			auction_info.owner = sender;
+			// how the fuck edit this properly
+			let mut updated_auction = auction_info.clone();
+			updated_auction.owner = sender;
 
-			<Module<T>>::new_auction(auction_info)?;
+			<Module<T>>::new_auction(updated_auction)?;
 		}
 
 		#[weight=0]
@@ -184,8 +186,8 @@ impl<T: Trait> Module<T> {
 		let current_block_number = frame_system::Module::<T>::block_number();
 		ensure!(auction.start <= current_block_number, Error::<T>::AuctionStartTimeAlreadyPassed);
 		ensure!(auction.start != Zero::zero() && auction.end != Zero::zero() && !auction.name.is_empty(), Error::<T>::BadAuctionConfiguration);
-		let is_owner = pallet_nft::Module::<T>::is_owner(&auction.owner, auction.token_id);
-		ensure!(is_owner, Error::<T>::NotAnAuctionOnwer);
+		// let is_owner = pallet_nft::Module::<T>::is_owner(&auction.owner, auction.token_id);
+		// ensure!(is_owner, Error::<T>::NotAnAuctionOnwer);
 		Ok(())
 	}
 
