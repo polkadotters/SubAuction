@@ -29,7 +29,7 @@ MaybeSerializeDeserialize - type that implements Serialize, DeserializeOwned and
 Bounded - numbers which have upper and lower bounds (so, basically all primitive types???)
  */
 
-pub trait Trait: frame_system::Trait + orml_nft::Trait {
+pub trait Trait: frame_system::Trait + pallet_nft::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 
 	/// The balance type for bidding
@@ -184,7 +184,7 @@ impl<T: Trait> Module<T> {
 		let current_block_number = frame_system::Module::<T>::block_number();
 		ensure!(auction.start <= current_block_number, Error::<T>::AuctionStartTimeAlreadyPassed);
 		ensure!(auction.start != Zero::zero() && auction.end != Zero::zero() && !auction.name.is_empty(), Error::<T>::BadAuctionConfiguration);
-		let is_owner = orml_nft::Module::<T>::is_owner(&auction.owner, auction.token_id);
+		let is_owner = pallet_nft::Module::<T>::is_owner(&auction.owner, auction.token_id);
 		ensure!(is_owner, Error::<T>::NotAnAuctionOnwer);
 		Ok(())
 	}
