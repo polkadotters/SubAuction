@@ -91,6 +91,7 @@ decl_error! {
 		NonExistingAuctionType,
 		BadAuctionConfiguration,
 		NotAnAuctionOnwer,
+		AuctionAlreadyConcluded,
 	}
 }
 
@@ -194,7 +195,8 @@ impl<T: Trait> Module<T> {
 	}
 
 	fn check_bid(auction: AuctionInfoOf<T>, block_number: T::BlockNumber, bid: T::Balance) -> DispatchResult {
-		ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
+		ensure!(block_number < auction.start, Error::<T>::AuctionNotStarted);
+		ensure!(block_number > auction.end, Error::<T>::AuctionAlreadyConcluded);
 		ensure!(bid >= auction.minimal_bid, Error::<T>::InvalidBidPrice);
 		if let Some(current_bid) = auction.last_bid {
 			ensure!(bid > current_bid.1, Error::<T>::InvalidBidPrice);
