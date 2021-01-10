@@ -1,25 +1,23 @@
 {
-    "CurrencyId": "u32",
-    "CurrencyIdOf": "CurrencyId",
-    "Address": "AccountId",
-    "LookupSource": "AccountId",
-    "CID": "Vec<u8>",
-    "ClassData": "u32",
-    "ClassId": "u64",
-    "TokenId": "u64",
-    "TokenData": "u32",
-    "AuctionId": "u32",
-    "ClassInfo": {
-      "metadata": "Vec<u8>",
-      "total_issuance": "TokenId",
-      "owner": "AccountId",
-      "data": "ClassData"
-    },
-    "ClassInfoOf": "ClassInfo",
-    "TokenInfo": {
-      "metadata": "Vec<u8>",
-      "owner": "AccountId",
-      "data": "TokenData" 
-    },
-    "TokenInfoOf": "TokenInfo"
-  }
+  "Address": "AccountId",
+  "LookupSource": "AccountId",
+  "AuctionId": "u64",
+  "ClassId": "u64",
+  "TokenId": "u64",
+  "ClassData": "u32",
+  "TokenData": "u32",
+  "CID": "Vec<u8>",
+  "ClassInfo": {
+    "metadata": "Vec<u8>",
+    "total_issuance": "TokenId",
+    "owner": "AccountId",
+    "data": "ClassData"
+  },
+  "TokenInfo": {
+    "metadata": "Vec<u8>",
+    "owner": "AccountId",
+    "data": "TokenData"
+  },
+  "ClassInfoOf": "ClassInfo",
+  "TokenInfoOf": "TokenInfo"
+}

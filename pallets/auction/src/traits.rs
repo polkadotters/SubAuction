@@ -28,6 +28,7 @@ pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 	pub starting_price: Balance,
 	pub private: bool,
 	pub max_participants: u32,
+	pub minimal_bid: Balance,
 }
 
 /// Abstraction over a simple auction system.
@@ -47,4 +48,6 @@ pub trait Auction<AccountId, BlockNumber> {
 	fn update_auction(id: Self::AuctionId, info: AuctionInfo<AccountId, Self::Balance, BlockNumber>) -> DispatchResult;
 	/// Remove auction by `id`
 	fn remove_auction(id: Self::AuctionId);
+	/// Bid
+	fn bid(bidder: Self::AccountId, id: Self::AuctionId,  value: Self::Balance) -> DispatchResult;
 }

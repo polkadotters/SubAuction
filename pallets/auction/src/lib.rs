@@ -6,7 +6,7 @@ use frame_support::{traits::{LockableCurrency, LockIdentifier, Currency, Withdra
 					Parameter, decl_error, decl_event, decl_module, decl_storage, ensure, dispatch::{DispatchResult, DispatchError}};
 use frame_system::ensure_signed;
 use sp_runtime::{
-	traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, MaybeDisplay},
+	traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, MaybeDisplay, Zero},
 	RuntimeDebug
 };
 use sp_std::{fmt::Debug, result, vec::Vec};
@@ -28,7 +28,7 @@ MaybeSerializeDeserialize - type that implements Serialize, DeserializeOwned and
 Bounded - numbers which have upper and lower bounds (so, basically all primitive types???)
  */
 
- type AuctionInfoOf<T> = AuctionInfo<<T as frame_system::Trait>::AccountId, <T as Trait>::Balance, <T as frame_system::Trait>::BlockNumber>;
+type AuctionInfoOf<T> = AuctionInfo<<T as frame_system::Trait>::AccountId, <T as Trait>::Balance, <T as frame_system::Trait>::BlockNumber>;
 
 pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
@@ -99,6 +99,12 @@ decl_module! {
 
 			<Module<T>>::new_auction(auction_info)?;
 		}
+
+		#[weight=0]
+		fn bid_value(origin, id: T::AuctionId, value: T::Balance) {
+			let sender = ensure_signed(origin)?;
+			<Module<T>>::bid(sender, id, value)?;
+		}
 	}
 }
 
@@ -119,7 +125,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T>{
 
 		match info.auction_type {
 			AuctionType::English => {
-				<EnglishAuctions<T>>::insert(auction_id, info);	
+				<EnglishAuctions<T>>::insert(auction_id, info);
 			}
 			AuctionType::Dutch => {
 				<DutchAuctions<T>>::insert(auction_id, info);
@@ -130,7 +136,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T>{
 	}
 
 	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
-		unimplemented!()
+		Self::english_auctions(id)
 	}
 
 	fn update_auction(id: Self::AuctionId, info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>) -> DispatchResult {
@@ -138,6 +144,31 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T>{
 	}
 
 	fn remove_auction(id: Self::AuctionId) {
-		unimplemented!()
+		<EnglishAuctions<T>>::remove(id)
+	}
+
+	fn bid(bidder: Self::AccountId, id: Self::AuctionId, value: Self::Balance) -> DispatchResult {
+		<EnglishAuctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
+			let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
+			let block_number = <frame_system::Module<T>>::block_number();
+			Self::check_bid(auction.clone(), block_number, value);
+			auction.last_bid = Some((bidder, value));
+			Ok(())
+		})
+	}
+}
+
+impl<T: Trait> Module<T> {
+
+
+	fn check_bid(auction: AuctionInfoOf<T>, block_number: T::BlockNumber, bid: T::Balance) -> DispatchResult {
+		ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
+		ensure!(bid >= auction.minimal_bid, Error::<T>::InvalidBidPrice);
+		if let Some(current_bid) = auction.last_bid {
+			ensure!(bid > current_bid.1, Error::<T>::InvalidBidPrice);
+		} else {
+			ensure!(bid == Zero::zero(), Error::<T>::InvalidBidPrice);
+		}
+		Ok(())
 	}
 }
