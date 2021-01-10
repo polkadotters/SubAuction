@@ -19,5 +19,24 @@
     "data": "TokenData"
   },
   "ClassInfoOf": "ClassInfo",
-  "TokenInfoOf": "TokenInfo"
+  "TokenInfoOf": "TokenInfo",
+  "AuctionType": {
+    "_enum": [
+      "English",
+      "Candle",
+      "Dutch",
+      "TopUp",
+      "FixedSwap"
+    ]
+  },
+  "AuctionInfo:": {
+    "name": "Text",
+    "owner": "AccountId",
+    "last_bid": "Option<(AccountId, Balance)>",
+    "start": "BlockNumber",
+    "end": "BlockNumber",
+    "auction_type": "AuctionType",
+    "token_id": "(NftClassId, NftTokenId)"
+  },
+  "AuctionInfoOf": "AuctionInfo"
 }
