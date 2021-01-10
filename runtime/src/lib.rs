@@ -279,6 +279,8 @@ impl pallet_auction::Trait for Runtime {
 	type Balance = Balance;
 	type AuctionId = u32;
 	type Currency = Balances;
+	type NftTokenId = u32;
+	type NftClassId = u32;
 }
 
 construct_runtime!(

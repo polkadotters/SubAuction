@@ -15,15 +15,22 @@ pub enum AuctionType {
 	FixedSwap,
 }
 
+impl Default for AuctionType {
+	fn default() -> Self { AuctionType::English }
+}
+
 #[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq)]
-pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
-	// Common fields for every auction
+pub struct AuctionInfo<AccountId, Balance, BlockNumber, NftClassId, NFtTokenId> {
+	// Mandatory fields
 	pub name: Vec<u8>,
 	pub owner: AccountId,
 	pub last_bid: Option<(AccountId, Balance)>,
 	pub start: BlockNumber,
 	pub end: BlockNumber,
 	pub auction_type: AuctionType,
+	pub token_id: (NftClassId, NFtTokenId),
+
+	// Optional configuration
 	pub no_identity_allowed: bool,
 	pub starting_price: Balance,
 	pub private: bool,
@@ -32,7 +39,7 @@ pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 }
 
 /// Abstraction over a simple auction system.
-pub trait Auction<AccountId, BlockNumber> {
+pub trait Auction<AccountId, BlockNumber, NftClassId, NftTokenId> {
 	/// The id of an AuctionInfo
 	type AuctionId: Default + Copy + Eq + PartialEq + MaybeSerializeDeserialize + Bounded + Debug;
 	/// The price to bid.
@@ -41,11 +48,11 @@ pub trait Auction<AccountId, BlockNumber> {
 	type AccountId: Parameter + Member + MaybeSerializeDeserialize + Debug + MaybeDisplay + Ord + Default;
 
 	/// Create new auction with specific startblock and endblock, return the id
-	fn new_auction(info: AuctionInfo<AccountId, Self::Balance, BlockNumber>) -> result::Result<Self::AuctionId, DispatchError>;
+	fn new_auction(info: AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>) -> result::Result<Self::AuctionId, DispatchError>;
 	/// The auction info of `id`
-	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<AccountId, Self::Balance, BlockNumber>>;
+	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>>;
 	/// Update the auction info of `id` with `info`
-	fn update_auction(id: Self::AuctionId, info: AuctionInfo<AccountId, Self::Balance, BlockNumber>) -> DispatchResult;
+	fn update_auction(id: Self::AuctionId, info: AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>) -> DispatchResult;
 	/// Remove auction by `id`
 	fn remove_auction(id: Self::AuctionId);
 	/// Bid

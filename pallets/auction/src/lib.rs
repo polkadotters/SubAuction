@@ -11,6 +11,7 @@ use sp_runtime::{
 };
 use sp_std::{fmt::Debug, result, vec::Vec};
 pub use traits::*;
+
 pub mod traits;
 
 #[cfg(test)]
@@ -28,9 +29,7 @@ MaybeSerializeDeserialize - type that implements Serialize, DeserializeOwned and
 Bounded - numbers which have upper and lower bounds (so, basically all primitive types???)
  */
 
-type AuctionInfoOf<T> = AuctionInfo<<T as frame_system::Trait>::AccountId, <T as Trait>::Balance, <T as frame_system::Trait>::BlockNumber>;
-
-pub trait Trait: frame_system::Trait {
+pub trait Trait: frame_system::Trait + orml_nft::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 
 	/// The balance type for bidding
@@ -41,7 +40,16 @@ pub trait Trait: frame_system::Trait {
 
 	// Currency
 	type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+
+	// Definition of the tokenId token from the Nft pallet
+	type NftTokenId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
+
+	// Definition of token classId from the Nft pallet
+	type NftClassId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
 }
+
+pub type AuctionInfoOf<T> = AuctionInfo<<T as frame_system::Trait>::AccountId, <T as Trait>::Balance, <T as frame_system::Trait>::BlockNumber,
+	<T as Trait>::NftClassId, <T as Trait>::NftTokenId>;
 
 decl_storage! {
 	trait AuctionStore for Module<T: Trait> as AuctionModule {
@@ -84,6 +92,8 @@ decl_error! {
 		NoAvailableAuctionId,
 		AuctionStartAlreadyPassed,
 		NonExistingAuctionType,
+		BadAuctionConfiguration,
+		NotAnAuctionOnwer,
 	}
 }
 
@@ -94,8 +104,9 @@ decl_module! {
 		fn deposit_event() = default;
 
 		#[weight=0]
-		fn create_auction(origin, auction_info: AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>) {
+		fn create_auction(origin, auction_info: AuctionInfoOf<T>) {
 			let sender = ensure_signed(origin)?;
+			auction_info.owner = sender;
 
 			<Module<T>>::new_auction(auction_info)?;
 		}
@@ -108,14 +119,13 @@ decl_module! {
 	}
 }
 
-impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T>{
+impl<T: Trait> Auction<T::AccountId, T::BlockNumber, T::NftClassId, T::NftTokenId> for Module<T>{
 	type AuctionId = T::AuctionId;
 	type Balance = T::Balance;
 	type AccountId = T::AccountId;
 
-	fn new_auction(info: AuctionInfo<Self::AccountId, Self::Balance, T::BlockNumber>) -> result::Result<Self::AuctionId, DispatchError> {
-		let current_block_number = frame_system::Module::<T>::block_number();
-		ensure!(info.start <= current_block_number, Error::<T>::AuctionStartAlreadyPassed);
+	fn new_auction(info: AuctionInfoOf<T>) -> result::Result<Self::AuctionId, DispatchError> {
+		Self::check_new_auction(info.clone());
 		let auction_id = <AuctionsIndex<T>>::try_mutate(|x| -> result::Result<Self::AuctionId, DispatchError> {
 			let id = *x;
 			ensure!(id != T::AuctionId::max_value(), Error::<T>::NoAvailableAuctionId);
@@ -135,11 +145,11 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T>{
 		Ok(auction_id)
 	}
 
-	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
+	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfoOf<T>> {
 		Self::english_auctions(id)
 	}
 
-	fn update_auction(id: Self::AuctionId, info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>) -> DispatchResult {
+	fn update_auction(id: Self::AuctionId, info: AuctionInfoOf<T>) -> DispatchResult {
 		unimplemented!()
 	}
 
@@ -160,6 +170,14 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T>{
 
 impl<T: Trait> Module<T> {
 
+	fn check_new_auction(auction: AuctionInfoOf<T>) -> DispatchResult {
+		let current_block_number = frame_system::Module::<T>::block_number();
+		ensure!(auction.start <= current_block_number, Error::<T>::AuctionStartAlreadyPassed);
+		ensure!(auction.start != Zero::zero() && auction.end != Zero::zero() && !auction.name.is_empty(), Error::<T>::BadAuctionConfiguration);
+		let is_owner = orml_nft::Module::<T>::is_owner(&auction.owner, auction.token_id);
+		ensure!(is_owner, Error::<T>::NotAnAuctionOnwer);
+		Ok(())
+	}
 
 	fn check_bid(auction: AuctionInfoOf<T>, block_number: T::BlockNumber, bid: T::Balance) -> DispatchResult {
 		ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
