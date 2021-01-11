@@ -63,4 +63,6 @@ pub trait Auction<AccountId, BlockNumber, NftClassId, NftTokenId> {
 	fn remove_auction(id: Self::AuctionId) -> DispatchResult;
 	/// Bid
 	fn bid(bidder: Self::AccountId, id: Self::AuctionId,  value: Self::Balance) -> DispatchResult;
+	/// End auction and select the winner
+	fn conclude_auction(id: Self::AuctionId) -> DispatchResult;
 }

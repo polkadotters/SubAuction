@@ -42,6 +42,8 @@ pub trait Trait: frame_system::Trait + pallet_nft::Trait {
 	type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
 }
 
+const AUCTION_LOCK_ID: LockIdentifier = *b"_auction";
+
 pub type NftClassIdOf<T> = pallet_nft::ClassIdOf<T>;
 pub type NftTokenIdOf<T> = pallet_nft::TokenIdOf<T>;
 pub type AuctionInfoOf<T> = AuctionInfo<<T as frame_system::Trait>::AccountId, <T as Trait>::Balance, <T as frame_system::Trait>::BlockNumber,
@@ -177,9 +179,22 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 			let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 			let block_number = <frame_system::Module<T>>::block_number();
 			Self::check_bid(auction.clone(), block_number, value);
+			// first lock or update the bid ??
+			T::Currency::set_lock(
+				AUCTION_LOCK_ID,
+				&bidder,
+				value,
+				WithdrawReasons::all()
+			);
 			auction.last_bid = Some((bidder, value));
 			Ok(())
 		})
+	}
+
+	fn conclude_auction(id: Self::AuctionId) -> DispatchResult {
+		let winner = 111;
+		T::Currency::remove_lock(AUCTION_LOCK_ID, &winner);
+		Ok(())
 	}
 }
 
