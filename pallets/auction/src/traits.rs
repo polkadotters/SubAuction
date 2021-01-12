@@ -29,22 +29,15 @@ impl Default for AuctionType {
 pub struct AuctionInfo<AccountId, Balance, BlockNumber, NftClassId, NFtTokenId> {
 	// Mandatory fields
 	pub name: Vec<u8>,
-	pub owner: AccountId,
 	pub last_bid: Option<(AccountId, Balance)>,
 	pub start: BlockNumber,
 	pub end: BlockNumber,
 	pub auction_type: AuctionType,
 	pub token_id: (NftClassId, NFtTokenId),
-
-	// Optional configuration
-	pub no_identity_allowed: bool,
-	pub starting_price: Balance,
-	pub private: bool,
-	pub max_participants: u32,
 	pub minimal_bid: Balance,
 }
 
-/// Abstraction over a simple auction system.
+/// Abstraction over a NFT auction system.
 pub trait Auction<AccountId, BlockNumber, NftClassId, NftTokenId> {
 	/// The id of an AuctionInfo
 	type AuctionId: Default + Copy + Eq + PartialEq + MaybeSerializeDeserialize + Bounded + Debug;
@@ -54,7 +47,7 @@ pub trait Auction<AccountId, BlockNumber, NftClassId, NftTokenId> {
 	type AccountId: Parameter + Member + MaybeSerializeDeserialize + Debug + MaybeDisplay + Ord + Default;
 
 	/// Create new auction with specific startblock and endblock, return the id
-	fn new_auction(info: AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>) -> result::Result<Self::AuctionId, DispatchError>;
+	fn new_auction(sender: &Self::AccountId, info: AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>) -> result::Result<Self::AuctionId, DispatchError>;
 	/// The auction info of `id`
 	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>>;
 	/// Update the auction info of `id` with `info`

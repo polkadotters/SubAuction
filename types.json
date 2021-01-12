@@ -31,16 +31,11 @@
   },
   "AuctionInfo": {
     "name": "Vec<u8>",
-    "owner": "AccountId",
     "last_bid": "Option<(AccountId, Balance)>",
     "start": "BlockNumber",
     "end": "BlockNumber",
     "auction_type": "AuctionType",
     "token_id": "(u64, u64)",
-    "no_identity_allowed": "bool",
-    "starting_price": "Balance",
-    "private": "bool",
-    "max_participants": "u32",
     "minimal_bid": "Balance"
   },
   "AuctionInfoOf": "AuctionInfo"

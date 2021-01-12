@@ -20,15 +20,6 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-/*
-Parameter - can be used in Dispatchable function (so in the decl_module!)
-Member - can be used in the runtime structures
-Default - gives trait variables default values (bool = false, int = 0, etc)
-Copy - value can be duplicated by simply copying the bits
-MaybeSerializeDeserialize - type that implements Serialize, DeserializeOwned and Debug when in std environment.
-Bounded - numbers which have upper and lower bounds (so, basically all primitive types???)
- */
-
 pub trait Trait: frame_system::Trait + pallet_nft::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 
@@ -36,31 +27,38 @@ pub trait Trait: frame_system::Trait + pallet_nft::Trait {
 	type Balance: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize;
 
 	/// The auction ID type
-	// why the fuck do we need CheckedAdd if kitties don't need it
+	// why do we need CheckedAdd if kitties don't need it??
 	type AuctionId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize + Bounded + CheckedAdd;
 
-	// Currency
+	/// Single type currency (TODO multiple currencies)
 	type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
 }
 
+/// Identifier for the currency lock on accounts
 const AUCTION_LOCK_ID: LockIdentifier = *b"_auction";
 
-type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
+/// Define type aliases for better readability
+pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
 pub type NftClassIdOf<T> = pallet_nft::ClassIdOf<T>;
 pub type NftTokenIdOf<T> = pallet_nft::TokenIdOf<T>;
-pub type AuctionInfoOf<T> = AuctionInfo<<T as frame_system::Trait>::AccountId, BalanceOf<T>, <T as frame_system::Trait>::BlockNumber,
-	NftClassIdOf<T>, NftTokenIdOf<T>>;
+pub type AuctionInfoOf<T> = AuctionInfo<<T as frame_system::Trait>::AccountId,
+																	BalanceOf<T>,
+										<T as frame_system::Trait>::BlockNumber,
+																	NftClassIdOf<T>,
+																	NftTokenIdOf<T>,
+									   >;
 
 decl_storage! {
 	trait AuctionStore for Module<T: Trait> as AuctionModule {
 		/// Stores on-going and future auctions. Closed auction are removed.
-		pub EnglishAuctions get(fn english_auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfoOf<T>>;
-
-		/// Stores on-going and future auctions. Closed auction are removed.
-		pub DutchAuctions get(fn dutch_auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfoOf<T>>;
+		// TODO: use single Auction storage using double map (auctionId, type)
+		pub Auctions get(fn auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfoOf<T>>;
 
 		/// Track the next auction ID.
-		pub AuctionsIndex get(fn auctions_index): T::AuctionId;
+		pub NextAuctionId get(fn auctions_index): T::AuctionId;
+
+		/// Auctions by owner
+		pub AuctionsByOwner get(fn auctions_by_owner): map hasher(twox_64_concat) T::AccountId => Option<AuctionInfoOf<T>>;
 
 		/// Index auctions by end time.
 		pub AuctionEndTime get(fn auction_end_time): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) T::AuctionId => Option<()>;
@@ -70,8 +68,8 @@ decl_storage! {
 decl_event!(
 	pub enum Event<T> where
 		<T as frame_system::Trait>::AccountId,
-		Balance = BalanceOf<T>,
 		<T as Trait>::AuctionId,
+		Balance = BalanceOf<T>,
 	{
 		// Auction created
 		AuctionCreated(AccountId, AuctionId),
@@ -83,7 +81,6 @@ decl_event!(
 );
 
 decl_error! {
-	/// Error for auction module.
 	pub enum Error for Module<T: Trait> {
 		AuctionNotExist,
 		AuctionNotStarted,
@@ -108,16 +105,15 @@ decl_module! {
 		#[weight=0]
 		fn create_auction(origin, auction_info: AuctionInfoOf<T>) {
 			let sender = ensure_signed(origin)?;
-			// how the fuck edit this properly
-			let mut updated_auction = auction_info.clone();
-			updated_auction.owner = sender;
 
-			<Module<T>>::new_auction(updated_auction)?;
+			let new_auction_id = <Module<T>>::new_auction(&sender, auction_info)?;
+			<Module<T>>::deposit_event(RawEvent::AuctionCreated(sender, new_auction_id));
 		}
 
 		#[weight=0]
 		fn bid_value(origin, id: T::AuctionId, value: BalanceOf<T>) {
 			let sender = ensure_signed(origin)?;
+
 			<Module<T>>::bid(sender, id, value)?;
 		}
 
@@ -134,32 +130,40 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 	type Balance = BalanceOf<T>;
 	type AccountId = T::AccountId;
 
-	fn new_auction(info: AuctionInfoOf<T>) -> result::Result<Self::AuctionId, DispatchError> {
-		Self::check_new_auction(info.clone());
-		let auction_id = <AuctionsIndex<T>>::try_mutate(|next_id| -> result::Result<Self::AuctionId, DispatchError> {
+	fn new_auction(owner: &Self::AccountId, info: AuctionInfoOf<T>) -> result::Result<Self::AuctionId, DispatchError> {
+		let current_block_number = frame_system::Module::<T>::block_number();
+		ensure!(info.start >= current_block_number, Error::<T>::AuctionStartTimeAlreadyPassed);
+		ensure!(info.start != Zero::zero() && info.end != Zero::zero() && !info.name.is_empty(), Error::<T>::BadAuctionConfiguration);
+		let is_owner = pallet_nft::Module::<T>::is_owner(&owner, info.token_id);
+		ensure!(is_owner, Error::<T>::NotAnAuctionOnwer);
+		let auction_id = <NextAuctionId<T>>::try_mutate(|next_id| -> result::Result<Self::AuctionId, DispatchError> {
 			let current_id = *next_id;
 			*next_id = next_id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableAuctionId)?;
 			Ok(current_id)
 		})?;
 
-		match info.auction_type {
-			AuctionType::English => {
-				<EnglishAuctions<T>>::insert(auction_id, info);
-			}
-			AuctionType::Dutch => {
-				<DutchAuctions<T>>::insert(auction_id, info);
-			}
-			_ => ()
-		}
+		let new_auction = AuctionInfo {
+			name: info.name,
+			last_bid: info.last_bid,
+			start: info.start,
+			end: info.end,
+			auction_type: info.auction_type,
+			token_id: info.token_id,
+			minimal_bid: info.minimal_bid,
+		};
+
+		<Auctions<T>>::insert(auction_id, &new_auction);
+		<AuctionsByOwner<T>>::insert(owner, new_auction);
+
 		Ok(auction_id)
 	}
 
 	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfoOf<T>> {
-		Self::english_auctions(id)
+		Self::auctions(id)
 	}
 
 	fn update_auction(id: Self::AuctionId, info: AuctionInfoOf<T>) -> DispatchResult {
-		<EnglishAuctions<T>>::try_mutate(id, |auction| -> DispatchResult {
+		<Auctions<T>>::try_mutate(id, |auction| -> DispatchResult {
 			ensure!(auction.is_some(), Error::<T>::AuctionNotExist);
 			*auction = Option::Some(info);
 			Ok(())
@@ -168,19 +172,26 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 
 	fn remove_auction(id: Self::AuctionId) -> DispatchResult {
 		let current_block_number = frame_system::Module::<T>::block_number();
-		if let Some(auction) = Self::english_auctions(id) {
+		if let Some(auction) = Self::auctions(id) {
 			ensure!(current_block_number < auction.start, Error::<T>::AuctionAlreadyStarted);
 		}
-		<EnglishAuctions<T>>::remove(id);
+		<Auctions<T>>::remove(id);
 		Ok(())
 	}
 
 	fn bid(bidder: Self::AccountId, id: Self::AuctionId, value: Self::Balance) -> DispatchResult {
-		<EnglishAuctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
+		<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
 			let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 			let block_number = <frame_system::Module<T>>::block_number();
-			Self::check_bid(auction.clone(), block_number, value);
-			// first lock or update the bid ??
+			ensure!(block_number < auction.start, Error::<T>::AuctionNotStarted);
+			ensure!(block_number > auction.end, Error::<T>::AuctionAlreadyConcluded);
+			ensure!(value >= auction.minimal_bid, Error::<T>::InvalidBidPrice);
+			if let Some(current_bid) = &auction.last_bid {
+				ensure!(value > current_bid.1, Error::<T>::InvalidBidPrice);
+			} else {
+				ensure!(value == Zero::zero(), Error::<T>::InvalidBidPrice);
+			}
+				// first lock or update the bid ??
 			T::Currency::set_lock(
 				AUCTION_LOCK_ID,
 				&bidder,
@@ -193,35 +204,11 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 	}
 
 	fn conclude_auction(id: Self::AuctionId) -> DispatchResult {
-		<EnglishAuctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
+		<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
 			let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 			// let winner = auction.last_bid.ok_or(Error::<T>::BidNotAccepted)?.0;
 			// T::Currency::remove_lock(AUCTION_LOCK_ID, &winner);
 			Ok(())
 		})
-	}
-}
-
-impl<T: Trait> Module<T> {
-
-	fn check_new_auction(auction: AuctionInfoOf<T>) -> DispatchResult {
-		let current_block_number = frame_system::Module::<T>::block_number();
-		ensure!(auction.start <= current_block_number, Error::<T>::AuctionStartTimeAlreadyPassed);
-		ensure!(auction.start != Zero::zero() && auction.end != Zero::zero() && !auction.name.is_empty(), Error::<T>::BadAuctionConfiguration);
-		let is_owner = pallet_nft::Module::<T>::is_owner(&auction.owner, auction.token_id);
-		ensure!(is_owner, Error::<T>::NotAnAuctionOnwer);
-		Ok(())
-	}
-
-	fn check_bid(auction: AuctionInfoOf<T>, block_number: T::BlockNumber, bid: BalanceOf<T>) -> DispatchResult {
-		ensure!(block_number < auction.start, Error::<T>::AuctionNotStarted);
-		ensure!(block_number > auction.end, Error::<T>::AuctionAlreadyConcluded);
-		ensure!(bid >= auction.minimal_bid, Error::<T>::InvalidBidPrice);
-		if let Some(current_bid) = auction.last_bid {
-			ensure!(bid > current_bid.1, Error::<T>::InvalidBidPrice);
-		} else {
-			ensure!(bid == Zero::zero(), Error::<T>::InvalidBidPrice);
-		}
-		Ok(())
 	}
 }
