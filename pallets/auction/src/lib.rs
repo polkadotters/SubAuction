@@ -57,9 +57,6 @@ decl_storage! {
 		/// Track the next auction ID.
 		pub NextAuctionId get(fn auctions_index): T::AuctionId;
 
-		/// Auctions by owner
-		pub AuctionsByOwner get(fn auctions_by_owner): map hasher(twox_64_concat) T::AccountId => Option<AuctionInfoOf<T>>;
-
 		/// Index auctions by end time.
 		pub AuctionEndTime get(fn auction_end_time): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) T::AuctionId => Option<()>;
 	}
@@ -106,15 +103,15 @@ decl_module! {
 		fn create_auction(origin, auction_info: AuctionInfoOf<T>) {
 			let sender = ensure_signed(origin)?;
 
-			let new_auction_id = <Module<T>>::new_auction(&sender, auction_info)?;
-			<Module<T>>::deposit_event(RawEvent::AuctionCreated(sender, new_auction_id));
+			let new_auction_id = Self::new_auction(&sender, auction_info)?;
+			Self::deposit_event(RawEvent::AuctionCreated(sender, new_auction_id));
 		}
 
 		#[weight=0]
 		fn bid_value(origin, id: T::AuctionId, value: BalanceOf<T>) {
 			let sender = ensure_signed(origin)?;
 
-			<Module<T>>::bid(sender, id, value)?;
+			Self::bid(sender, id, value)?;
 		}
 
 		#[weight=0]
@@ -153,7 +150,6 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 		};
 
 		<Auctions<T>>::insert(auction_id, &new_auction);
-		<AuctionsByOwner<T>>::insert(owner, new_auction);
 
 		Ok(auction_id)
 	}
@@ -183,13 +179,13 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 		<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
 			let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 			let block_number = <frame_system::Module<T>>::block_number();
-			ensure!(block_number < auction.start, Error::<T>::AuctionNotStarted);
-			ensure!(block_number > auction.end, Error::<T>::AuctionAlreadyConcluded);
+			ensure!(block_number > auction.start, Error::<T>::AuctionNotStarted);
+			ensure!(block_number < auction.end, Error::<T>::AuctionAlreadyConcluded);
 			ensure!(value >= auction.minimal_bid, Error::<T>::InvalidBidPrice);
-			if let Some(current_bid) = &auction.last_bid {
+			if let Some(ref current_bid) = auction.last_bid {
 				ensure!(value > current_bid.1, Error::<T>::InvalidBidPrice);
 			} else {
-				ensure!(value == Zero::zero(), Error::<T>::InvalidBidPrice);
+				ensure!(!value.is_zero(), Error::<T>::InvalidBidPrice);
 			}
 				// first lock or update the bid ??
 			T::Currency::set_lock(
@@ -199,6 +195,8 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 				WithdrawReasons::all()
 			);
 			auction.last_bid = Some((bidder, value));
+			// TODO : unsafe!
+			auction.minimal_bid = value+value;
 			Ok(())
 		})
 	}

@@ -27,7 +27,6 @@ impl Default for AuctionType {
 
 #[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq)]
 pub struct AuctionInfo<AccountId, Balance, BlockNumber, NftClassId, NFtTokenId> {
-	// Mandatory fields
 	pub name: Vec<u8>,
 	pub last_bid: Option<(AccountId, Balance)>,
 	pub start: BlockNumber,

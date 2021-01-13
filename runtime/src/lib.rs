@@ -277,7 +277,7 @@ impl orml_nft::Trait for Runtime {
 impl pallet_auction::Trait for Runtime {
 	type Event = Event;
 	type Balance = Balance;
-	type AuctionId = u32;
+	type AuctionId = u64;
 	type Currency = Balances;
 }
 
