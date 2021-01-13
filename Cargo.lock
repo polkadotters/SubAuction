@@ -3411,6 +3411,7 @@ version = "0.0.1"
 dependencies = [
  "frame-support",
  "frame-system",
+ "pallet-nft",
  "parity-scale-codec",
  "sp-core",
  "sp-io",

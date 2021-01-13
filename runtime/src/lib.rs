@@ -274,12 +274,12 @@ impl orml_nft::Trait for Runtime {
 	type TokenData = u32;
 }
 
-// impl pallet_auction::Trait for Runtime {
-// 	type Event = Event;
-// 	type Balance = Balance;
-// 	type AuctionId = u32;
-// 	type Handler = pallet_auction::SubHandler;
-// }
+impl pallet_auction::Trait for Runtime {
+	type Event = Event;
+	type Balance = Balance;
+	type AuctionId = u64;
+	type Currency = Balances;
+}
 
 construct_runtime!(
 	pub enum Runtime where

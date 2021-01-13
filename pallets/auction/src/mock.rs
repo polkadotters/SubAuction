@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::{Module, Trait, SubHandler};
+use crate::{Module, Trait};
 use sp_core::H256;
 use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
 use sp_runtime::{
@@ -51,12 +51,9 @@ impl system::Trait for Test {
 	type SystemWeightInfo = ();
 }
 
-impl Trait for Test {
+/* impl Trait for Test {
 	type Event = ();
-	type Balance = u128;
-	type AuctionId = u64;
-	type Handler = SubHandler;
-}
+} */
 
 pub type TemplateModule = Module<Test>;
 

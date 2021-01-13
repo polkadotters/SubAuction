@@ -12,6 +12,9 @@ pub trait Trait: frame_system::Trait + orml_nft::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 }
 
+pub type TokenIdOf<T> = <T as orml_nft::Trait>::TokenId;
+pub type ClassIdOf<T> = <T as orml_nft::Trait>::ClassId;
+
 decl_storage! {
 	trait Store for Module<T: Trait> as NftStore {
 	}
@@ -74,7 +77,12 @@ decl_module! {
 			Self::deposit_event(RawEvent::NFTTokenClassDestroyed(sender, class_id));
 			Ok(())
 		}
+	}
+}
 
+impl<T: Trait> Module<T> {
+	pub fn is_owner(account: &T::AccountId, token: (T::ClassId, T::TokenId)) -> bool {
+		orml_nft::Module::<T>::is_owner(account, token)
 	}
 }
 
