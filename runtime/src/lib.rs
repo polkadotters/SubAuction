@@ -296,7 +296,7 @@ construct_runtime!(
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 
-        //Auctions: pallet_auction::{Module, Call, Storage, Event<T>},
+        Auctions: pallet_auction::{Module, Call, Storage, Event<T>},
 		OrmlNft: orml_nft::{Module, Storage},
         Nft: pallet_nft::{Module, Call, Storage, Event<T>},
 	}
