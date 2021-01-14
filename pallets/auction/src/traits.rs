@@ -34,6 +34,10 @@ pub struct AuctionInfo<AccountId, Balance, BlockNumber, NftClassId, NFtTokenId> 
 	pub auction_type: AuctionType,
 	pub token_id: (NftClassId, NFtTokenId),
 	pub minimal_bid: Balance,
+	// pub no_identity_allowed: bool,
+	// pub starting_price: Balance,
+	// pub private: bool,
+	// pub max_participants: u32,
 }
 
 /// Abstraction over a NFT auction system.

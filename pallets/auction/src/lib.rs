@@ -139,17 +139,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 			Ok(current_id)
 		})?;
 
-		let new_auction = AuctionInfo {
-			name: info.name,
-			last_bid: info.last_bid,
-			start: info.start,
-			end: info.end,
-			auction_type: info.auction_type,
-			token_id: info.token_id,
-			minimal_bid: info.minimal_bid,
-		};
-
-		<Auctions<T>>::insert(auction_id, &new_auction);
+		<Auctions<T>>::insert(auction_id, info);
 
 		Ok(auction_id)
 	}
