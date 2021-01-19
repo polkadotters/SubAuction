@@ -20,7 +20,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-pub trait Trait: frame_system::Trait + pallet_nft::Trait {
+pub trait Trait: pallet_nft::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 
 	/// The balance type for bidding
@@ -88,7 +88,7 @@ decl_error! {
 		AuctionStartTimeAlreadyPassed,
 		NonExistingAuctionType,
 		BadAuctionConfiguration,
-		NotAnAuctionOnwer,
+		NotATokenOwner,
 		AuctionAlreadyConcluded,
 	}
 }
@@ -132,7 +132,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 		ensure!(info.start >= current_block_number, Error::<T>::AuctionStartTimeAlreadyPassed);
 		ensure!(info.start != Zero::zero() && info.end != Zero::zero() && !info.name.is_empty(), Error::<T>::BadAuctionConfiguration);
 		let is_owner = pallet_nft::Module::<T>::is_owner(&owner, info.token_id);
-		ensure!(is_owner, Error::<T>::NotAnAuctionOnwer);
+		ensure!(is_owner, Error::<T>::NotATokenOwner);
 		let auction_id = <NextAuctionId<T>>::try_mutate(|next_id| -> result::Result<Self::AuctionId, DispatchError> {
 			let current_id = *next_id;
 			*next_id = next_id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableAuctionId)?;

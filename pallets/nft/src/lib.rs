@@ -8,7 +8,7 @@ use sp_runtime::{
 
 pub type CID = sp_std::vec::Vec<u8>;
 
-pub trait Trait: frame_system::Trait + orml_nft::Trait {
+pub trait Trait: orml_nft::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 }
 
