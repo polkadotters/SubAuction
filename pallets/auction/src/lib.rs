@@ -58,6 +58,9 @@ decl_storage! {
 
 		/// Index auctions by end time.
 		pub AuctionEndTime get(fn auction_end_time): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) T::AuctionId => Option<()>;
+
+		/// Auction owner by ID
+		pub AuctionOwnerById get(fn auction_owner_by_id): map hasher(twox_64_concat) T::AuctionId => T::AccountId;
 	}
 }
 
@@ -90,6 +93,7 @@ decl_error! {
 		NotATokenOwner,
 		AuctionAlreadyConcluded,
 		BidOverflow,
+		BidOnOwnAuction,
 	}
 }
 
@@ -140,6 +144,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 		})?;
 
 		<Auctions<T>>::insert(auction_id, info);
+		<AuctionOwnerById<T>>::insert(auction_id, owner);
 
 		Ok(auction_id)
 	}
@@ -169,6 +174,8 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 		<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
 			let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 			let block_number = <frame_system::Module<T>>::block_number();
+			let owner = Self::auction_owner_by_id(id);
+			ensure!(bidder != owner, Error::<T>::BidOnOwnAuction);
 			ensure!(block_number > auction.start, Error::<T>::AuctionNotStarted);
 			ensure!(block_number < auction.end, Error::<T>::AuctionAlreadyConcluded);
 			ensure!(value >= auction.minimal_bid, Error::<T>::InvalidBidPrice);
