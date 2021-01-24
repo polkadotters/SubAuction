@@ -200,3 +200,33 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 		})
 	}
 }
+
+impl <T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenIdOf<T>> for AuctionInfo<T::AccountId, BalanceOf<T>, T::BlockNumber, NftClassIdOf<T>, NftTokenIdOf<T>>  {
+    type AuctionId = T::AuctionId;
+	type Balance = BalanceOf<T>;
+	type AccountId = T::AccountId;
+
+    fn new_auction(sender: &Self::AccountId, info: AuctionInfo<Self::AccountId, Self::Balance, T::BlockNumber, NftClassIdOf<T>, NftTokenIdOf<T>>) -> Result<Self::AuctionId, DispatchError> {
+        todo!()
+    }
+
+    fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<Self::AccountId, Self::Balance, T::BlockNumber, NftClassIdOf<T>, NftTokenIdOf<T>>> {
+        todo!()
+    }
+
+    fn update_auction(id: Self::AuctionId, info: AuctionInfo<Self::AccountId, Self::Balance, T::BlockNumber, NftClassIdOf<T>, NftTokenIdOf<T>>) -> DispatchResult {
+        todo!()
+    }
+
+    fn remove_auction(id: Self::AuctionId) -> DispatchResult {
+        todo!()
+    }
+
+    fn bid(bidder: Self::AccountId, id: Self::AuctionId,  value: Self::Balance) -> DispatchResult {
+        todo!()
+    }
+
+    fn conclude_auction(id: Self::AuctionId) -> DispatchResult {
+        todo!()
+    }
+}
