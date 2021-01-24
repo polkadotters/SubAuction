@@ -5,10 +5,7 @@ use codec::{Encode, Decode};
 use frame_support::{traits::{LockableCurrency, LockIdentifier, Currency, WithdrawReason, WithdrawReasons},
 					Parameter, decl_error, decl_event, decl_module, decl_storage, ensure, dispatch::{DispatchResult, DispatchError}};
 use frame_system::ensure_signed;
-use sp_runtime::{
-	traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, MaybeDisplay, Zero, CheckedAdd},
-	RuntimeDebug
-};
+use sp_runtime::{Permill, RuntimeDebug, traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, MaybeDisplay, Zero, CheckedAdd}};
 use sp_std::{fmt::Debug, result, vec::Vec};
 pub use traits::*;
 
@@ -36,6 +33,8 @@ pub trait Trait: pallet_nft::Trait {
 
 /// Identifier for the currency lock on accounts
 const AUCTION_LOCK_ID: LockIdentifier = *b"_auction";
+/// Set in percent how much next bid has to be raised
+const BID_STEP_PERC: u32 = 10;
 
 /// Define type aliases for better readability
 pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
@@ -90,6 +89,7 @@ decl_error! {
 		BadAuctionConfiguration,
 		NotATokenOwner,
 		AuctionAlreadyConcluded,
+		BidOverflow,
 	}
 }
 
@@ -177,7 +177,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 			} else {
 				ensure!(!value.is_zero(), Error::<T>::InvalidBidPrice);
 			}
-				// first lock or update the bid ??
+			// first lock or update the bid ??
 			T::Currency::set_lock(
 				AUCTION_LOCK_ID,
 				&bidder,
@@ -185,8 +185,8 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 				WithdrawReasons::all()
 			);
 			auction.last_bid = Some((bidder, value));
-			// TODO : unsafe!
-			auction.minimal_bid = value+value;
+			let minimal_bid_step = Permill::from_percent(BID_STEP_PERC).mul_floor(value);
+			auction.minimal_bid = value.checked_add(&minimal_bid_step).ok_or(Error::<T>::BidOverflow)?;
 			Ok(())
 		})
 	}
