@@ -5,8 +5,9 @@ use frame_system::ensure_signed;
 use sp_runtime::{
 	traits::{StaticLookup, Zero}
 };
+use sp_std::vec::Vec;
 
-pub type CID = sp_std::vec::Vec<u8>;
+pub type CID = Vec<u8>;
 
 pub trait Trait: orml_nft::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
@@ -14,9 +15,34 @@ pub trait Trait: orml_nft::Trait {
 
 pub type TokenIdOf<T> = <T as orml_nft::Trait>::TokenId;
 pub type ClassIdOf<T> = <T as orml_nft::Trait>::ClassId;
+pub type GenesisTokenData<AccountId, TokenData> = (
+	AccountId, // Token owner
+	Vec<u8>,                               // Token metadata
+	TokenData,
+);
+pub type GenesisTokens<AccountId, ClassData, TokenData> = (
+	AccountId, // Token class owner
+	Vec<u8>,                               // Token class metadata
+	ClassData,
+	Vec<GenesisTokenData<AccountId, TokenData>>, // Vector of tokens belonging to this class
+);
 
 decl_storage! {
-	trait Store for Module<T: Trait> as NftStore {
+	trait Store for Module<T: Trait> as Nft {
+	}
+	add_extra_genesis {
+		config(tokens): Vec<GenesisTokens<T::AccountId, <T as orml_nft::Trait>::ClassData, <T as orml_nft::Trait>::TokenData>>;
+
+		build(|config: &GenesisConfig<T>| {
+			config.tokens.iter().for_each(|token_class| {
+				let class_id = orml_nft::Module::<T>::create_class(&token_class.0, token_class.1.to_vec(), token_class.2.clone())
+					.expect("Create class cannot fail while building genesis");
+				for (account_id, token_metadata, token_data) in &token_class.3 {
+					orml_nft::Module::<T>::mint(&account_id, class_id, token_metadata.to_vec(), token_data.clone())
+						.expect("Token mint cannot fail during genesis");
+				}
+			})
+		})
 	}
 }
 

@@ -1,12 +1,14 @@
 use sp_core::{Pair, Public, sr25519};
 use subauction_runtime::{
-	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig,
+	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, NftConfig,
 	SudoConfig, SystemConfig, WASM_BINARY, Signature
 };
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{Verify, IdentifyAccount};
 use sc_service::ChainType;
+use sp_std::vec::Vec;
+use pallet_nft::{GenesisTokens, GenesisTokenData};
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -153,5 +155,25 @@ fn testnet_genesis(
 			// Assign network admin rights.
 			key: root_key,
 		}),
+		pallet_nft: Some(NftConfig {
+			tokens: create_testnet_tokens(&endowed_accounts),
+		}),
 	}
+}
+
+fn create_testnet_tokens(accounts: &Vec<AccountId>) -> Vec<GenesisTokens<AccountId, u32, u32>> {
+	// for each account create token class and mint few tokens
+	let mut tokens = Vec::<GenesisTokens<AccountId, u32, u32>>::new();
+	accounts.iter().for_each(|account| {
+		let token_class = (account.clone(), "Description of a class".as_bytes().to_vec(), 0, get_tokens(account));
+		tokens.push(token_class);
+	});
+	tokens
+}
+
+fn get_tokens(account: &AccountId) -> Vec<GenesisTokenData<AccountId, u32>> {
+	let token1 = (account.clone(), "Description of token 1".as_bytes().to_vec(), 0);
+	let token2 = (account.clone(), "Description of token 2".as_bytes().to_vec(), 0);
+	let token3 = (account.clone(), "Description of token 3".as_bytes().to_vec(), 0);
+	vec![token1, token2, token3]
 }

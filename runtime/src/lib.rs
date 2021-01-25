@@ -298,7 +298,7 @@ construct_runtime!(
 
         Auctions: pallet_auction::{Module, Call, Storage, Event<T>},
 		OrmlNft: orml_nft::{Module, Storage},
-        Nft: pallet_nft::{Module, Call, Storage, Event<T>},
+        Nft: pallet_nft::{Module, Call, Config<T>, Storage, Event<T>},
 	}
 );
 
