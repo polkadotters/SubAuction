@@ -1,7 +1,7 @@
 use codec::{Encode, Decode};
 use frame_support::{traits::{Currency}, Parameter, dispatch::{DispatchResult, DispatchError}};
 use sp_runtime::{
-	traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, MaybeDisplay},
+	traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, Zero, MaybeDisplay},
 	RuntimeDebug
 };
 use sp_std::{fmt::{Display, Debug, Formatter}, result, vec::Vec};
@@ -26,7 +26,45 @@ impl Default for AuctionType {
 }
 
 #[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq)]
-pub struct AuctionInfo<AccountId, Balance, BlockNumber, NftClassId, NFtTokenId> {
+pub struct OptionalConfig<Balance> {
+	pub minimal_bid: Balance,
+	pub no_identity_allowed: bool,
+	pub starting_price: Balance,
+	pub private: bool,
+	pub max_participants: u32,
+}
+
+// TODO how to make default implementation of a generic struct
+impl Default for OptionalConfig<u32> {
+	fn default() -> OptionalConfig<u32> {
+		OptionalConfig {
+			minimal_bid: Zero::zero(),
+			no_identity_allowed: true,
+			starting_price: Zero::zero(),
+			private: false,
+			max_participants: u32::max_value(),
+		}
+	}
+}
+
+#[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq)]
+pub struct GeneralAuction<AccountId, Balance, BlockNumber, NftClassId, NFtTokenId> {
+
+}
+
+#[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq)]
+pub struct EnglishAuction<AccountId, Balance, BlockNumber, NftClassId, NFtTokenId> {
+	pub name: Vec<u8>,
+	pub last_bid: Option<(AccountId, Balance)>,
+	pub start: BlockNumber,
+	pub end: BlockNumber,
+	pub auction_type: AuctionType,
+	pub token_id: (NftClassId, NFtTokenId),
+	pub config: OptionalConfig<Balance>,
+}
+
+#[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq)]
+pub struct DutchAuction<AccountId, Balance, BlockNumber, NftClassId, NFtTokenId> {
 	pub name: Vec<u8>,
 	pub last_bid: Option<(AccountId, Balance)>,
 	pub start: BlockNumber,
@@ -34,10 +72,7 @@ pub struct AuctionInfo<AccountId, Balance, BlockNumber, NftClassId, NFtTokenId> 
 	pub auction_type: AuctionType,
 	pub token_id: (NftClassId, NFtTokenId),
 	pub minimal_bid: Balance,
-	// pub no_identity_allowed: bool,
-	// pub starting_price: Balance,
-	// pub private: bool,
-	// pub max_participants: u32,
+	pub config: OptionalConfig<Balance>,
 }
 
 /// Abstraction over a NFT auction system.
@@ -50,11 +85,12 @@ pub trait Auction<AccountId, BlockNumber, NftClassId, NftTokenId> {
 	type AccountId: Parameter + Member + MaybeSerializeDeserialize + Debug + MaybeDisplay + Ord + Default;
 
 	/// Create new auction with specific startblock and endblock, return the id
-	fn new_auction(sender: &Self::AccountId, info: AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>) -> result::Result<Self::AuctionId, DispatchError>;
+	fn new_auction(self, sender: &Self::AccountId) -> result::Result<Self::AuctionId, DispatchError>;
 	/// The auction info of `id`
-	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>>;
+	// TODO how to generalize the auction struct being returned if you want only one general trait over different structs???
+	fn auction_info(id: Self::AuctionId) -> Option<EnglishAuction<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>>;
 	/// Update the auction info of `id` with `info`
-	fn update_auction(id: Self::AuctionId, info: AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>) -> DispatchResult;
+	fn update_auction(id: Self::AuctionId, info: EnglishAuction<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>) -> DispatchResult;
 	/// Remove auction by `id`
 	fn remove_auction(id: Self::AuctionId) -> DispatchResult;
 	/// Bid

@@ -40,18 +40,19 @@ const BID_STEP_PERC: u32 = 10;
 pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
 pub type NftClassIdOf<T> = pallet_nft::ClassIdOf<T>;
 pub type NftTokenIdOf<T> = pallet_nft::TokenIdOf<T>;
-pub type AuctionInfoOf<T> = AuctionInfo<<T as frame_system::Trait>::AccountId,
-																	BalanceOf<T>,
-										<T as frame_system::Trait>::BlockNumber,
-																	NftClassIdOf<T>,
-																	NftTokenIdOf<T>,
-									   >;
+pub type EnglishAuctionInfoOf<T> = EnglishAuction<<T as frame_system::Trait>::AccountId,
+																			  BalanceOf<T>,
+												  <T as frame_system::Trait>::BlockNumber,
+																			NftClassIdOf<T>,
+																			NftTokenIdOf<T>,
+>;
 
 decl_storage! {
 	trait AuctionStore for Module<T: Trait> as AuctionModule {
 		/// Stores on-going and future auctions. Closed auction are removed.
 		// TODO: use single Auction storage using double map (auctionId, type)
-		pub Auctions get(fn auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfoOf<T>>;
+		// TODO: Ask greg
+		pub Auctions get(fn auctions): map hasher(twox_64_concat) T::AuctionId => Option<EnglishAuctionInfoOf<T>>;
 
 		/// Track the next auction ID.
 		pub NextAuctionId get(fn auctions_index): T::AuctionId;
@@ -103,11 +104,12 @@ decl_module! {
 
 		fn deposit_event() = default;
 
+		// TODO general idea is to have mandatory auction attributes as parameters and optional config as a single struct. Each auction type would then construct itself from the optional params
 		#[weight=0]
-		fn create_auction(origin, auction_info: AuctionInfoOf<T>) {
+		fn create_auction(origin, name: Vec<u8>, start: T::BlockNumber, end: T::BlockNumber, token_id: (NftClassIdOf<T>, NftTokenIdOf<T>), auction_type: AuctionType, config: OptionalConfig<T::Balance> ) {
 			let sender = ensure_signed(origin)?;
 
-			let new_auction_id = Self::new_auction(&sender, auction_info)?;
+			let new_auction_id = Self::create_auction_by_type(&sender, name, start, end, token_id, auction_type, config);
 			Self::deposit_event(RawEvent::AuctionCreated(sender, new_auction_id));
 		}
 
@@ -126,34 +128,68 @@ decl_module! {
 	}
 }
 
-impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenIdOf<T>> for Module<T>{
+// TODO general purpose code to be re-used across different auction types
+impl<T: Trait> Module<T> {
+
+	fn validate_auction(owner: T::AccountId, name: &Vec<u8>, start: T::BlockNumber, end: T::BlockNumber, token_id: (NftClassIdOf<T>, NftTokenIdOf<T>)) -> DispatchResult {
+ 		let current_block_number = frame_system::Module::<T>::block_number();
+		ensure!(start != Zero::zero() && end != Zero::zero() && !name.is_empty(), Error::<T>::BadAuctionConfiguration);
+		ensure!(start >= current_block_number, Error::<T>::AuctionStartTimeAlreadyPassed);
+		ensure!(start < end, Error::<T>::BadAuctionConfiguration);
+ 		let is_owner = pallet_nft::Module::<T>::is_owner(&owner, token_id);
+ 		ensure!(is_owner, Error::<T>::NotATokenOwner);
+
+	}
+
+	// TODO this one would create a specific auction with its configuration and return its id
+	fn create_auction_by_type(owner: T::AccountId, name: Vec<u8>, start: T::BlockNumber, end: T::BlockNumber, token_id: (NftClassIdOf<T>, NftTokenIdOf<T>), auction_type: AuctionType,
+					  config: OptionalConfig<T::Balance>) -> result::Result<T::AuctionId, DispatchError> {
+		Self::validate_auction(&owner, &name, start, end, token_id);
+		match auction_type {
+			EnglishAuction=> {
+				 auction = EnglishAuctionInfoOf::<T> {
+					name, last_bid: None, start, end, token_id, auction_type, config,
+				 };
+				// TODO how to make this work, is a good idea to call the code on self???
+				auction.new_auction(owner);
+				Zero::zero()
+			}
+			_ => DispatchError::Module {
+				error: 0,
+				index: 0,
+				message: Some("Non-existing auction type provided"),
+			}
+		}
+	}
+}
+
+// TODO the goal is to have different implementations of this interface for different structs representing the auctions
+// This one works
+// impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenIdOf<T>> for Module<T>{
+// This one not
+impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenIdOf<T>> for EnglishAuctionInfoOf<T>{
 	type AuctionId = T::AuctionId;
 	type Balance = BalanceOf<T>;
 	type AccountId = T::AccountId;
 
-	fn new_auction(owner: &Self::AccountId, info: AuctionInfoOf<T>) -> result::Result<Self::AuctionId, DispatchError> {
-		let current_block_number = frame_system::Module::<T>::block_number();
-		ensure!(info.start >= current_block_number, Error::<T>::AuctionStartTimeAlreadyPassed);
-		ensure!(info.start != Zero::zero() && info.end != Zero::zero() && !info.name.is_empty(), Error::<T>::BadAuctionConfiguration);
-		let is_owner = pallet_nft::Module::<T>::is_owner(&owner, info.token_id);
-		ensure!(is_owner, Error::<T>::NotATokenOwner);
+	fn new_auction(self, owner: &Self::AccountId) -> result::Result<Self::AuctionId, DispatchError> {
 		let auction_id = <NextAuctionId<T>>::try_mutate(|next_id| -> result::Result<Self::AuctionId, DispatchError> {
 			let current_id = *next_id;
 			*next_id = next_id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableAuctionId)?;
 			Ok(current_id)
 		})?;
 
-		<Auctions<T>>::insert(auction_id, info);
+		<Auctions<T>>::insert(auction_id, self);
 		<AuctionOwnerById<T>>::insert(auction_id, owner);
 
 		Ok(auction_id)
 	}
 
-	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfoOf<T>> {
+	fn auction_info(id: Self::AuctionId) -> Option<EnglishAuctionInfoOf<T>> {
 		Self::auctions(id)
 	}
 
-	fn update_auction(id: Self::AuctionId, info: AuctionInfoOf<T>) -> DispatchResult {
+	fn update_auction(id: Self::AuctionId, info: EnglishAuctionInfoOf<T>) -> DispatchResult {
 		<Auctions<T>>::try_mutate(id, |auction| -> DispatchResult {
 			ensure!(auction.is_some(), Error::<T>::AuctionNotExist);
 			*auction = Option::Some(info);
