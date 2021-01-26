@@ -145,8 +145,10 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 			Ok(current_id)
 		})?;
 
-		<Auctions<T>>::insert(auction_id, info);
+		// fix clone
+		<Auctions<T>>::insert(auction_id, info.clone());
 		<AuctionOwnerById<T>>::insert(auction_id, owner);
+		pallet_nft::Module::<T>::toggle_lock(&owner, info.token_id);
 
 		Ok(auction_id)
 	}
@@ -158,7 +160,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 	fn update_auction(id: Self::AuctionId, info: AuctionInfoOf<T>) -> DispatchResult {
 		<Auctions<T>>::try_mutate(id, |auction| -> DispatchResult {
 			ensure!(auction.is_some(), Error::<T>::AuctionNotExist);
-			*auction = Option::Some(info);
+			*auction = Some(info);
 			Ok(())
 		})
 	}

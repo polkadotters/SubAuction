@@ -5,7 +5,9 @@
   "ClassId": "u64",
   "TokenId": "u64",
   "ClassData": "u32",
-  "TokenData": "u32",
+  "TokenData": {
+    "locked": "bool"
+  },
   "CID": "Vec<u8>",
   "ClassInfo": {
     "metadata": "Vec<u8>",

@@ -8,7 +8,8 @@ use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{Verify, IdentifyAccount};
 use sc_service::ChainType;
 use sp_std::vec::Vec;
-use pallet_nft::{GenesisTokens, GenesisTokenData};
+use pallet_nft::{GenesisTokens, GenesisTokenData, TokenData};
+use orml_nft::Error::TokenNotFound;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -161,9 +162,9 @@ fn testnet_genesis(
 	}
 }
 
-fn create_testnet_tokens(accounts: &Vec<AccountId>) -> Vec<GenesisTokens<AccountId, u32, u32>> {
+fn create_testnet_tokens(accounts: &Vec<AccountId>) -> Vec<GenesisTokens<AccountId, u32, TokenData>> {
 	// for each account create token class and mint few tokens
-	let mut tokens = Vec::<GenesisTokens<AccountId, u32, u32>>::new();
+	let mut tokens = Vec::<GenesisTokens<AccountId, u32, TokenData>>::new();
 	accounts.iter().for_each(|account| {
 		let token_class = (account.clone(), "Description of a class".as_bytes().to_vec(), 0, get_tokens(account));
 		tokens.push(token_class);
@@ -171,9 +172,10 @@ fn create_testnet_tokens(accounts: &Vec<AccountId>) -> Vec<GenesisTokens<Account
 	tokens
 }
 
-fn get_tokens(account: &AccountId) -> Vec<GenesisTokenData<AccountId, u32>> {
-	let token1 = (account.clone(), "Description of token 1".as_bytes().to_vec(), 0);
-	let token2 = (account.clone(), "Description of token 2".as_bytes().to_vec(), 0);
-	let token3 = (account.clone(), "Description of token 3".as_bytes().to_vec(), 0);
+fn get_tokens(account: &AccountId) -> Vec<GenesisTokenData<AccountId, TokenData>> {
+	let data = TokenData { locked: false};
+	let token1 = (account.clone(), "Description of token 1".as_bytes().to_vec(), data);
+	let token2 = (account.clone(), "Description of token 2".as_bytes().to_vec(), data.clone());
+	let token3 = (account.clone(), "Description of token 3".as_bytes().to_vec(), data.clone());
 	vec![token1, token2, token3]
 }

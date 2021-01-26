@@ -271,7 +271,7 @@ impl orml_nft::Trait for Runtime {
 	type ClassId = u64;
 	type TokenId = u64;
 	type ClassData = u32;
-	type TokenData = u32;
+	type TokenData = pallet_nft::TokenData;
 }
 
 impl pallet_auction::Trait for Runtime {
