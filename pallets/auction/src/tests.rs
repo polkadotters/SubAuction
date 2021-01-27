@@ -1,6 +1,7 @@
 use super::*;
 
 use std::cell::RefCell;
+use pallet_nft::TokenData;
 use sp_core::H256;
 use frame_support::{
     impl_outer_origin, impl_outer_event, parameter_types, weights::Weight,
@@ -94,7 +95,7 @@ impl orml_nft::Trait for Test {
     type ClassId = u64;
 	type TokenId = u64;
 	type ClassData = u32;
-	type TokenData = u32;
+	type TokenData = pallet_nft::TokenData;
 }
 
 impl pallet_nft::Trait for Test {
@@ -120,7 +121,7 @@ fn create_nft(){
 		Origin::signed(100), "Class1".as_bytes().to_vec(), 0
 	));
 	assert_ok!(NFT::mint(
-		Origin::signed(100), 0, "Class1_mint1".as_bytes().to_vec(), 0
+		Origin::signed(100), 0, "Class1_mint1".as_bytes().to_vec(), TokenData {locked:false}
 	));
 }
 
@@ -131,7 +132,7 @@ fn can_create_auction() {
 			name: "Aukce1".as_bytes().to_vec(),
 			last_bid: None,
 			start: 1,
-			end: 2,
+			end: 20,
 			auction_type: AuctionType::English,
 			token_id: (0,0),
 			minimal_bid: 50,
