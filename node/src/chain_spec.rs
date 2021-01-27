@@ -174,12 +174,7 @@ fn create_testnet_tokens(accounts: &Vec<AccountId>) -> Vec<GenesisTokens<Account
 fn get_tokens(account: &AccountId) -> Vec<GenesisTokenData<AccountId, TokenData>> {
 	let data = TokenData { locked: false};
 	let token1 = (	account.clone(),
-					"{
-						'name': 'psycho',
-						'description': 'Desc',
-						'external_url': 'none yet',
-						'image': 'https://gateway.pinata.cloud/ipfs/QmQ2uJ4zM6VURKDtzsWqSqr9ovBsANbRs7dLp9K8R6QtZk'
-					}".as_bytes().to_vec(),
+					"{'name': 'psycho','description': 'Desc','external_url': 'none yet','image': 'https://gateway.pinata.cloud/ipfs/QmQ2uJ4zM6VURKDtzsWqSqr9ovBsANbRs7dLp9K8R6QtZk'}".as_bytes().to_vec(),
 					data.clone());
 	let token2 = (account.clone(), "https://gateway.pinata.cloud/ipfs/QmQ2uJ4zM6VURKDtzsWqSqr9ovBsANbRs7dLp9K8R6QtZk".as_bytes().to_vec(), data.clone());
 	let token3 = (account.clone(), "https://gateway.pinata.cloud/ipfs/Qmd2iXiVSieLzuPkrXAHoarddoZUuW14nEW8pgMHJUX85Z".as_bytes().to_vec(), data.clone());
