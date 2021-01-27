@@ -5,7 +5,6 @@ use frame_support::{decl_event, decl_module, decl_storage, decl_error, ensure, d
 use frame_system::ensure_signed;
 use sp_runtime::{traits::{StaticLookup, Zero}, RuntimeDebug};
 use sp_std::vec::Vec;
-use serde::{Serialize, Deserialize};
 
 pub type CID = Vec<u8>;
 
