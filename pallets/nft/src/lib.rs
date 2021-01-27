@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Encode, Decode};
-use frame_support::{decl_event, decl_module, decl_storage, decl_error, ensure, dispatch::{DispatchResult}};
+use frame_support::{decl_event, decl_module, decl_storage, decl_error, ensure, dispatch::{DispatchResult, DispatchError}};
 use frame_system::ensure_signed;
 use sp_runtime::{traits::{StaticLookup, Zero}, RuntimeDebug};
 use sp_std::vec::Vec;
@@ -16,14 +16,14 @@ pub type TokenIdOf<T> = <T as orml_nft::Trait>::TokenId;
 pub type ClassIdOf<T> = <T as orml_nft::Trait>::ClassId;
 pub type GenesisTokenData<AccountId, TokenData> = (
 	AccountId, // Token owner
-	Vec<u8>,                               // Token metadata
+	Vec<u8>,   // Token metadata
 	TokenData,
 );
 pub type GenesisTokens<AccountId, ClassData, TokenData> = (
-	AccountId, // Token class owner
-	Vec<u8>,                               // Token class metadata
+	AccountId, 										// Token class owner
+	Vec<u8>,   										// Token class metadata
 	ClassData,
-	Vec<GenesisTokenData<AccountId, TokenData>>, // Vector of tokens belonging to this class
+	Vec<GenesisTokenData<AccountId, TokenData>>, 	// Vector of tokens belonging to this class
 );
 
 #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
@@ -119,6 +119,11 @@ impl<T: Trait> Module<T> {
 		orml_nft::Module::<T>::is_owner(account, token)
 	}
 
+	pub fn is_locked(token: (T::ClassId, T::TokenId)) -> Result<bool, DispatchError> {
+		let token_info = orml_nft::Module::<T>::tokens(token.0, token.1).ok_or(Error::<T>::TokenNotFound)?;
+		Ok(token_info.data.locked)
+	} 
+
 	pub fn toggle_lock(account: &T::AccountId, token_id: (T::ClassId, T::TokenId)) -> DispatchResult {
 		let _class_info = orml_nft::Module::<T>::classes(token_id.0).ok_or(Error::<T>::ClassNotFound)?;
 		orml_nft::Tokens::<T>::mutate_exists(token_id.0, token_id.1, |token| -> DispatchResult {
@@ -131,7 +136,6 @@ impl<T: Trait> Module<T> {
 			Ok(())
 		})?;
 		Ok(())
-		// waaaaaaaaaaaaaaaat kurva
 	}
 }
 
@@ -144,7 +148,8 @@ decl_event!(
 		NFTTokenMinted(AccountId, ClassId, TokenId),
 		NFTTokenMintedLockToggled(AccountId, ClassId, TokenId, bool),
 		NFTTokenTransferred(AccountId, AccountId, ClassId, TokenId),
-		NFTTokenBurned(AccountId, TokenId), NFTTokenClassDestroyed(AccountId, ClassId),
+		NFTTokenBurned(AccountId, TokenId),
+		NFTTokenClassDestroyed(AccountId, ClassId),
 	}
 );
 

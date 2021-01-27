@@ -36,6 +36,8 @@ const AUCTION_LOCK_ID: LockIdentifier = *b"_auction";
 const BID_STEP_PERC: u32 = 10;
 /// Increase endtime to avoid sniping
 const BID_ADD_BLOCKS: u32 = 10;
+/// Minimal auction duration
+const MIN_AUCTION_DUR: u32 = 10;
 
 /// Define type aliases for better readability
 pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
@@ -90,12 +92,14 @@ decl_error! {
 		NoAvailableAuctionId,
 		AuctionStartTimeAlreadyPassed,
 		NonExistingAuctionType,
-		BadAuctionConfiguration,
+		InvalidTimeConfiguration,
 		NotATokenOwner,
 		AuctionAlreadyConcluded,
 		BidOverflow,
 		BidOnOwnAuction,
 		TimeUnderflow,
+		TokenLocked,
+		EmptyAuctionName,
 	}
 }
 
@@ -134,11 +138,16 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 	type AccountId = T::AccountId;
 
 	fn new_auction(owner: &Self::AccountId, info: AuctionInfoOf<T>) -> result::Result<Self::AuctionId, DispatchError> {
+		/// Basic checks before an auction is created
 		let current_block_number = frame_system::Module::<T>::block_number();
 		ensure!(info.start >= current_block_number, Error::<T>::AuctionStartTimeAlreadyPassed);
-		ensure!(info.start != Zero::zero() && info.end != Zero::zero() && !info.name.is_empty(), Error::<T>::BadAuctionConfiguration);
+		ensure!(info.start != Zero::zero() && info.end != Zero::zero() && info.end > info.start + MIN_AUCTION_DUR.into(), Error::<T>::InvalidTimeConfiguration);
+		ensure!(!info.name.is_empty(), Error::<T>::EmptyAuctionName);
 		let is_owner = pallet_nft::Module::<T>::is_owner(&owner, info.token_id);
 		ensure!(is_owner, Error::<T>::NotATokenOwner);
+		let nft_locked = pallet_nft::Module::<T>::is_locked(info.token_id)?;
+		ensure!(nft_locked == false, Error::<T>::TokenLocked);
+
 		let auction_id = <NextAuctionId<T>>::try_mutate(|next_id| -> result::Result<Self::AuctionId, DispatchError> {
 			let current_id = *next_id;
 			*next_id = next_id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableAuctionId)?;
