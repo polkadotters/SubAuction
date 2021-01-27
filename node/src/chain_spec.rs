@@ -174,7 +174,7 @@ fn create_testnet_tokens(accounts: &Vec<AccountId>) -> Vec<GenesisTokens<Account
 
 fn get_tokens(account: &AccountId) -> Vec<GenesisTokenData<AccountId, TokenData>> {
 	let data = TokenData { locked: false};
-	let token1 = (account.clone(), "Description of token 1".as_bytes().to_vec(), data);
+	let token1 = (account.clone(), "Description of token 1".as_bytes().to_vec(), data.clone());
 	let token2 = (account.clone(), "Description of token 2".as_bytes().to_vec(), data.clone());
 	let token3 = (account.clone(), "Description of token 3".as_bytes().to_vec(), data.clone());
 	vec![token1, token2, token3]
