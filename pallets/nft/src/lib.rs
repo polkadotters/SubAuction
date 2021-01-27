@@ -27,8 +27,7 @@ pub type GenesisTokens<AccountId, ClassData, TokenData> = (
 	Vec<GenesisTokenData<AccountId, TokenData>>, // Vector of tokens belonging to this class
 );
 
-// #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 pub struct TokenData {
 	pub locked: bool,
 }
