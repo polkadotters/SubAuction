@@ -5,6 +5,7 @@ use frame_support::{decl_event, decl_module, decl_storage, decl_error, ensure, d
 use frame_system::ensure_signed;
 use sp_runtime::{traits::{StaticLookup, Zero}, RuntimeDebug};
 use sp_std::vec::Vec;
+use serde::{Serialize, Deserialize};
 
 pub type CID = Vec<u8>;
 
@@ -27,7 +28,7 @@ pub type GenesisTokens<AccountId, ClassData, TokenData> = (
 );
 
 // #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq)]
+#[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TokenData {
 	pub locked: bool,
 }
