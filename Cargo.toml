@@ -1,3 +1,5 @@
+cargo-features = ['resolver']
+
 [profile.release]
 panic = 'unwind'
 
@@ -7,3 +9,4 @@ members = [
     'pallets/*',
     'runtime',
 ]
+resolver = "2"
