@@ -200,7 +200,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 			auction.minimal_bid = value.checked_add(&minimal_bid_step).ok_or(Error::<T>::BidOverflow)?;
 			/// Avoid auction sniping
 			let time_left = auction.end.checked_sub(&block_number).ok_or(Error::<T>::TimeUnderflow)?;
-			if time_left < 10.into() {
+			if time_left < BID_ADD_BLOCKS.into() {
 				auction.end = block_number + BID_ADD_BLOCKS.into();
 			}
 			Ok(())
