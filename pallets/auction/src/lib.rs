@@ -5,7 +5,7 @@ use codec::{Encode, Decode};
 use frame_support::{traits::{LockableCurrency, LockIdentifier, Currency, WithdrawReason, WithdrawReasons},
 					Parameter, decl_error, decl_event, decl_module, decl_storage, ensure, dispatch::{DispatchResult, DispatchError}};
 use frame_system::ensure_signed;
-use sp_runtime::{Permill, RuntimeDebug, traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, MaybeDisplay, Zero, CheckedAdd}};
+use sp_runtime::{Permill, RuntimeDebug, traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, MaybeDisplay, Zero, CheckedAdd, CheckedSub}};
 use sp_std::{fmt::Debug, result, vec::Vec};
 pub use traits::*;
 
@@ -24,7 +24,6 @@ pub trait Trait: pallet_nft::Trait {
 	type Balance: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize;
 
 	/// The auction ID type
-	// why do we need CheckedAdd if kitties don't need it??
 	type AuctionId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize + Bounded + CheckedAdd;
 
 	/// Single type currency (TODO multiple currencies)
@@ -35,6 +34,8 @@ pub trait Trait: pallet_nft::Trait {
 const AUCTION_LOCK_ID: LockIdentifier = *b"_auction";
 /// Set in percent how much next bid has to be raised
 const BID_STEP_PERC: u32 = 10;
+/// Increase endtime to avoid sniping
+const BID_ADD_BLOCKS: u32 = 10;
 
 /// Define type aliases for better readability
 pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
@@ -70,11 +71,11 @@ decl_event!(
 		<T as Trait>::AuctionId,
 		Balance = BalanceOf<T>,
 	{
-		// Auction created
+		/// Auction created
 		AuctionCreated(AccountId, AuctionId),
 		/// A bid is placed
 		Bid(AuctionId, AccountId, Balance),
-		//
+		/// Auction ended
 		AuctionConcluded(AuctionId),
 	}
 );
@@ -94,6 +95,7 @@ decl_error! {
 		AuctionAlreadyConcluded,
 		BidOverflow,
 		BidOnOwnAuction,
+		TimeUnderflow,
 	}
 }
 
@@ -172,6 +174,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 
 	fn bid(bidder: Self::AccountId, id: Self::AuctionId, value: Self::Balance) -> DispatchResult {
 		<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
+			/// Basic checks before a bid can be made
 			let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 			let block_number = <frame_system::Module<T>>::block_number();
 			let owner = Self::auction_owner_by_id(id);
@@ -184,7 +187,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 			} else {
 				ensure!(!value.is_zero(), Error::<T>::InvalidBidPrice);
 			}
-			// first lock or update the bid ??
+			/// Lock funds
 			T::Currency::set_lock(
 				AUCTION_LOCK_ID,
 				&bidder,
@@ -192,8 +195,14 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 				WithdrawReasons::all()
 			);
 			auction.last_bid = Some((bidder, value));
+			/// Set next minimal bid
 			let minimal_bid_step = Permill::from_percent(BID_STEP_PERC).mul_floor(value);
 			auction.minimal_bid = value.checked_add(&minimal_bid_step).ok_or(Error::<T>::BidOverflow)?;
+			/// Avoid auction sniping
+			let time_left = auction.end.checked_sub(&block_number).ok_or(Error::<T>::TimeUnderflow)?;
+			if time_left < 10.into() {
+				auction.end = block_number + BID_ADD_BLOCKS.into();
+			}
 			Ok(())
 		})
 	}
