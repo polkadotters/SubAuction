@@ -176,7 +176,14 @@ fn get_tokens(account: &AccountId) -> Vec<GenesisTokenData<AccountId, TokenData>
 	let token1 = (	account.clone(),
 					"{'name': 'psycho','description': 'Desc','external_url': 'none yet','image': 'https://ipfs.io/ipfs/QmQ2uJ4zM6VURKDtzsWqSqr9ovBsANbRs7dLp9K8R6QtZk'}".as_bytes().to_vec(),
 					data.clone());
-	let token2 = (account.clone(), "https://ipfs.io/ipfs/QmQ2uJ4zM6VURKDtzsWqSqr9ovBsANbRs7dLp9K8R6QtZk".as_bytes().to_vec(), data.clone());
-	let token3 = (account.clone(), "https://ipfs.io/ipfs/Qmd2iXiVSieLzuPkrXAHoarddoZUuW14nEW8pgMHJUX85Z".as_bytes().to_vec(), data.clone());
+
+	let token2 = (	account.clone(),
+					"{'name': 'bleee','description': 'Desc','external_url': 'none yet','image': 'https://ipfs.io/ipfs/QmTRKVBm315DQF2UKsbRmjDfTfSFFEEMmxvtAquuj1kN1i'}".as_bytes().to_vec(),
+					data.clone());
+
+	let token3 = (	account.clone(),
+					"{'name': 'bloody','description': 'Desc','external_url': 'none yet','image': 'https://ipfs.io/ipfs/Qmd2iXiVSieLzuPkrXAHoarddoZUuW14nEW8pgMHJUX85Z'}".as_bytes().to_vec(),
+					data.clone());
+
 	vec![token1, token2, token3]
 }
