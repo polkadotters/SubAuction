@@ -218,12 +218,11 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 		})
 	}
 
-	fn conclude_auction(id: Self::AuctionId) -> DispatchResult {
-		<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
-			let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
-			// let winner = auction.last_bid.ok_or(Error::<T>::BidNotAccepted)?.0;
-			// T::Currency::remove_lock(AUCTION_LOCK_ID, &winner);
-			Ok(())
-		})
+}
+
+impl<T: Trait> EnglishAuctionHandler<T::AuctionId> for Module<T> {
+
+	fn on_auction_ended(id: T::AuctionId) {
+		unimplemented!()
 	}
 }
