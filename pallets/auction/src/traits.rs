@@ -31,6 +31,7 @@ pub struct AuctionInfo<AccountId, Balance, BlockNumber, NftClassId, NFtTokenId> 
 	pub last_bid: Option<(AccountId, Balance)>,
 	pub start: BlockNumber,
 	pub end: BlockNumber,
+	pub owner: AccountId,
 	pub auction_type: AuctionType,
 	pub token_id: (NftClassId, NFtTokenId),
 	pub minimal_bid: Balance,
@@ -50,7 +51,7 @@ pub trait Auction<AccountId, BlockNumber, NftClassId, NftTokenId> {
 	type AccountId: Parameter + Member + MaybeSerializeDeserialize + Debug + MaybeDisplay + Ord + Default;
 
 	/// Create new auction with specific startblock and endblock, return the id
-	fn new_auction(sender: &Self::AccountId, info: AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>) -> result::Result<Self::AuctionId, DispatchError>;
+	fn new_auction(info: AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>) -> result::Result<Self::AuctionId, DispatchError>;
 	/// The auction info of `id`
 	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>>;
 	/// Update the auction info of `id` with `info`
@@ -59,15 +60,4 @@ pub trait Auction<AccountId, BlockNumber, NftClassId, NftTokenId> {
 	fn remove_auction(id: Self::AuctionId) -> DispatchResult;
 	/// Bid
 	fn bid(bidder: Self::AccountId, id: Self::AuctionId,  value: Self::Balance) -> DispatchResult;
-}
-
-pub trait EnglishAuctionHandler<AuctionId> {
-	// fn on_new_bid(
-	// 	now: BlockNumber,
-	// 	id: AuctionId,
-	// 	new_bid: (AccountId, Balance),
-	// 	last_bid: Option<(AccountId, Balance)>,
-	// ) -> OnNewBidResult<BlockNumber>;
-	/// End an auction with `winner`
-	fn on_auction_ended(id: AuctionId);
 }

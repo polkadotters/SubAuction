@@ -3,11 +3,13 @@
 // Used for encoding/decoding into scale
 use codec::{Encode, Decode};
 use frame_support::{traits::{LockableCurrency, LockIdentifier, Currency, WithdrawReason, WithdrawReasons},
-					Parameter, decl_error, decl_event, decl_module, decl_storage, ensure, dispatch::{DispatchResult, DispatchError}};
+					Parameter, decl_error, decl_event, decl_module, decl_storage, ensure, dispatch::{DispatchResult, DispatchError},
+					debug};
 use frame_system::ensure_signed;
-use sp_runtime::{Permill, RuntimeDebug, traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, MaybeDisplay, Zero, CheckedAdd, CheckedSub}};
+use sp_runtime::{Permill, RuntimeDebug, traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, MaybeDisplay, Zero, CheckedAdd, CheckedSub, StaticLookup}, print};
 use sp_std::{fmt::Debug, result, vec::Vec};
 pub use traits::*;
+use frame_support::traits::ExistenceRequirement;
 
 pub mod traits;
 
@@ -112,8 +114,9 @@ decl_module! {
 		#[weight=0]
 		fn create_auction(origin, auction_info: AuctionInfoOf<T>) {
 			let sender = ensure_signed(origin)?;
-
-			let new_auction_id = Self::new_auction(&sender, auction_info)?;
+			let mut auction_clone = auction_info.clone();
+			auction_clone.owner = sender.clone();
+			let new_auction_id = Self::new_auction(auction_clone)?;
 			Self::deposit_event(RawEvent::AuctionCreated(sender, new_auction_id));
 		}
 
@@ -132,18 +135,42 @@ decl_module! {
 	}
 }
 
+impl<T: Trait> Module<T> {
+	fn on_finalize(now: T::BlockNumber) {
+		debug::warn!("aaaaaaaaaaaaaaaaaaaa");
+		for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
+			// let auction = Self::auctions(auction_id).ok_or(Error::<T>::AuctionNotExist)?;
+			match Self::auctions(auction_id) {
+				Some(auction) => {
+					pallet_nft::Module::<T>::toggle_lock(&auction.owner, auction.token_id);
+					// there is a bid so let's determine a winner and transfer tokens
+					if let Some(ref winner) = auction.last_bid {
+						// let lookup = <Runtime as frame_system::Trait>::Lookup::unlookup(winner.0);
+						let dest = T::Lookup::unlookup(winner.0.clone());
+						let source = T::Origin::from(frame_system::RawOrigin::Signed(auction.owner.clone()));
+						pallet_nft::Module::<T>::transfer(source, dest, auction.token_id);
+						T::Currency::remove_lock(AUCTION_LOCK_ID, &winner.0);
+						<T::Currency as Currency<T::AccountId>>::transfer(&winner.0, &auction.owner, winner.1, ExistenceRequirement::KeepAlive);
+					}
+				}
+				None => ()
+			}
+		}
+	}
+}
+
 impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenIdOf<T>> for Module<T>{
 	type AuctionId = T::AuctionId;
 	type Balance = BalanceOf<T>;
 	type AccountId = T::AccountId;
 
-	fn new_auction(owner: &Self::AccountId, info: AuctionInfoOf<T>) -> result::Result<Self::AuctionId, DispatchError> {
+	fn new_auction(info: AuctionInfoOf<T>) -> result::Result<Self::AuctionId, DispatchError> {
 		/// Basic checks before an auction is created
 		let current_block_number = frame_system::Module::<T>::block_number();
 		ensure!(info.start >= current_block_number, Error::<T>::AuctionStartTimeAlreadyPassed);
 		ensure!(info.start != Zero::zero() && info.end != Zero::zero() && info.end > info.start + MIN_AUCTION_DUR.into(), Error::<T>::InvalidTimeConfiguration);
 		ensure!(!info.name.is_empty(), Error::<T>::EmptyAuctionName);
-		let is_owner = pallet_nft::Module::<T>::is_owner(&owner, info.token_id);
+		let is_owner = pallet_nft::Module::<T>::is_owner(&info.owner, info.token_id);
 		ensure!(is_owner, Error::<T>::NotATokenOwner);
 		let nft_locked = pallet_nft::Module::<T>::is_locked(info.token_id)?;
 		ensure!(nft_locked == false, Error::<T>::TokenLocked);
@@ -156,8 +183,8 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 
 		// fix clone
 		<Auctions<T>>::insert(auction_id, info.clone());
-		<AuctionOwnerById<T>>::insert(auction_id, owner);
-		pallet_nft::Module::<T>::toggle_lock(&owner, info.token_id);
+		<AuctionOwnerById<T>>::insert(auction_id, &info.owner);
+		pallet_nft::Module::<T>::toggle_lock(&info.owner, info.token_id);
 
 		Ok(auction_id)
 	}
@@ -218,11 +245,4 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 		})
 	}
 
-}
-
-impl<T: Trait> EnglishAuctionHandler<T::AuctionId> for Module<T> {
-
-	fn on_auction_ended(id: T::AuctionId) {
-		unimplemented!()
-	}
 }
