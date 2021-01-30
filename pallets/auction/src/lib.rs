@@ -145,13 +145,11 @@ decl_module! {
 impl<T: Trait> Module<T> {
 	fn conclude_auction(now: T::BlockNumber) {
 		for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
-			// let auction = Self::auctions(auction_id).ok_or(Error::<T>::AuctionNotExist)?;
 			match Self::auctions(auction_id) {
 				Some(auction) => {
 					pallet_nft::Module::<T>::toggle_lock(&auction.owner, auction.token_id);
 					// there is a bid so let's determine a winner and transfer tokens
 					if let Some(ref winner) = auction.last_bid {
-						// let lookup = <Runtime as frame_system::Trait>::Lookup::unlookup(winner.0);
 						let dest = T::Lookup::unlookup(winner.0.clone());
 						let source = T::Origin::from(frame_system::RawOrigin::Signed(auction.owner.clone()));
 						pallet_nft::Module::<T>::transfer(source, dest, auction.token_id);
