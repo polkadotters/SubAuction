@@ -36,6 +36,7 @@
     "last_bid": "Option<(AccountId, Balance)>",
     "start": "BlockNumber",
     "end": "BlockNumber",
+    "owner": "AccountId",
     "auction_type": "AuctionType",
     "token_id": "(u64, u64)",
     "minimal_bid": "Balance"
