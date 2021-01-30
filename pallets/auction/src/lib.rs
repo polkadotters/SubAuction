@@ -81,6 +81,8 @@ decl_event!(
 		Bid(AuctionId, AccountId, Balance),
 		/// Auction ended
 		AuctionConcluded(AuctionId),
+		/// Auction removed
+		AuctionRemoved(AuctionId),
 	}
 );
 
@@ -122,13 +124,16 @@ decl_module! {
 		fn bid_value(origin, id: T::AuctionId, value: BalanceOf<T>) {
 			let sender = ensure_signed(origin)?;
 
-			Self::bid(sender, id, value)?;
+			Self::bid(sender.clone(), id, value)?;
+			Self::deposit_event(RawEvent::Bid(id, sender, value));
 		}
 
 		#[weight=0]
-		fn get_auction_types(origin) {
+		fn delete_auction(origin, id: T::AuctionId) {
 			let sender = ensure_signed(origin)?;
 
+			Self::remove_auction(id);
+			Self::deposit_event(RawEvent::AuctionRemoved(id));
 		}
 
 		fn on_finalize(now: T::BlockNumber) {
@@ -158,6 +163,18 @@ impl<T: Trait> Module<T> {
 			}
 		}
 	}
+
+	fn check_new_auction(info: &AuctionInfoOf<T>) -> DispatchResult {
+		let current_block_number = frame_system::Module::<T>::block_number();
+		ensure!(info.start >= current_block_number, Error::<T>::AuctionStartTimeAlreadyPassed);
+		ensure!(info.start != Zero::zero() && info.end != Zero::zero() && info.end > info.start + MIN_AUCTION_DUR.into(), Error::<T>::InvalidTimeConfiguration);
+		ensure!(!info.name.is_empty(), Error::<T>::EmptyAuctionName);
+		let is_owner = pallet_nft::Module::<T>::is_owner(&info.owner, info.token_id);
+		ensure!(is_owner, Error::<T>::NotATokenOwner);
+		let nft_locked = pallet_nft::Module::<T>::is_locked(info.token_id)?;
+		ensure!(nft_locked == false, Error::<T>::TokenLocked);
+		Ok(())
+	}
 }
 
 impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenIdOf<T>> for Module<T>{
@@ -167,15 +184,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 
 	fn new_auction(info: AuctionInfoOf<T>) -> result::Result<Self::AuctionId, DispatchError> {
 		/// Basic checks before an auction is created
-		let current_block_number = frame_system::Module::<T>::block_number();
-		ensure!(info.start >= current_block_number, Error::<T>::AuctionStartTimeAlreadyPassed);
-		ensure!(info.start != Zero::zero() && info.end != Zero::zero() && info.end > info.start + MIN_AUCTION_DUR.into(), Error::<T>::InvalidTimeConfiguration);
-		ensure!(!info.name.is_empty(), Error::<T>::EmptyAuctionName);
-		let is_owner = pallet_nft::Module::<T>::is_owner(&info.owner, info.token_id);
-		ensure!(is_owner, Error::<T>::NotATokenOwner);
-		let nft_locked = pallet_nft::Module::<T>::is_locked(info.token_id)?;
-		ensure!(nft_locked == false, Error::<T>::TokenLocked);
-
+		Self::check_new_auction(&info);
 		let auction_id = <NextAuctionId<T>>::try_mutate(|next_id| -> result::Result<Self::AuctionId, DispatchError> {
 			let current_id = *next_id;
 			*next_id = next_id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableAuctionId)?;
@@ -191,10 +200,6 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 		Ok(auction_id)
 	}
 
-	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfoOf<T>> {
-		Self::auctions(id)
-	}
-
 	fn update_auction(id: Self::AuctionId, info: AuctionInfoOf<T>) -> DispatchResult {
 		<Auctions<T>>::try_mutate(id, |auction| -> DispatchResult {
 			ensure!(auction.is_some(), Error::<T>::AuctionNotExist);
@@ -204,11 +209,10 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 	}
 
 	fn remove_auction(id: Self::AuctionId) -> DispatchResult {
+		let auction = <Auctions<T>>::take(id).ok_or(Error::<T>::AuctionNotExist)?;
 		let current_block_number = frame_system::Module::<T>::block_number();
-		if let Some(auction) = Self::auctions(id) {
-			ensure!(current_block_number < auction.start, Error::<T>::AuctionAlreadyStarted);
-		}
-		<Auctions<T>>::remove(id);
+		ensure!(current_block_number < auction.start, Error::<T>::AuctionAlreadyStarted);
+		pallet_nft::Module::<T>::toggle_lock(&auction.owner, auction.token_id);
 		Ok(())
 	}
 

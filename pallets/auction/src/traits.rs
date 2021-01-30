@@ -52,8 +52,6 @@ pub trait Auction<AccountId, BlockNumber, NftClassId, NftTokenId> {
 
 	/// Create new auction with specific startblock and endblock, return the id
 	fn new_auction(info: AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>) -> result::Result<Self::AuctionId, DispatchError>;
-	/// The auction info of `id`
-	fn auction_info(id: Self::AuctionId) -> Option<AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>>;
 	/// Update the auction info of `id` with `info`
 	fn update_auction(id: Self::AuctionId, info: AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>) -> DispatchResult;
 	/// Remove auction by `id`
