@@ -6,9 +6,10 @@ use subauction_runtime::{
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{Verify, IdentifyAccount};
-use sc_service::ChainType;
+use sc_service::{ChainType, Properties};
 use sp_std::vec::Vec;
 use pallet_nft::{GenesisTokens, GenesisTokenData, TokenData};
+use serde_json::json;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -82,6 +83,10 @@ pub fn development_config() -> Result<ChainSpec, String> {
 pub fn local_testnet_config() -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or("Development wasm binary not available".to_string())?;
 
+	let mut props : Properties = Properties::new();
+	let value = json!("saDOT");
+    props.insert("tokenSymbol".to_string(), value);
+
 	Ok(ChainSpec::from_genesis(
 		// Name
 		"Local Testnet",
@@ -121,7 +126,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 		// Protocol ID
 		None,
 		// Properties
-		None,
+		Some(props),
 		// Extensions
 		None,
 	))
@@ -172,18 +177,20 @@ fn create_testnet_tokens(accounts: &Vec<AccountId>) -> Vec<GenesisTokens<Account
 }
 
 fn get_tokens(account: &AccountId) -> Vec<GenesisTokenData<AccountId, TokenData>> {
-	let data = TokenData { locked: false};
-	let token1 = (	account.clone(),
-					"{'name': 'psycho','description': 'Desc','external_url': 'none yet','image': 'https://ipfs.io/ipfs/QmQ2uJ4zM6VURKDtzsWqSqr9ovBsANbRs7dLp9K8R6QtZk'}".as_bytes().to_vec(),
-					data.clone());
+	let data = TokenData { locked: false };
+	let mut tokens = Vec::new();
+	let url = "{'name': 'psycho','description': 'Desc','external_url': 'none yet','image': 'https://ipfs.io/ipfs/QmPfupQ5iyfF2QCE9W8tLdBpCbrmdNLmfQyoYuMk93eWyt/".to_owned();
 
-	let token2 = (	account.clone(),
-					"{'name': 'bleee','description': 'Desc','external_url': 'none yet','image': 'https://ipfs.io/ipfs/QmTRKVBm315DQF2UKsbRmjDfTfSFFEEMmxvtAquuj1kN1i'}".as_bytes().to_vec(),
-					data.clone());
+	for n in 1..17 {
+		let full_url = url.clone() + &n.to_string() + ".png";
+		let token = (
+					account.clone(),
+					full_url.as_bytes().to_vec(),
+					data.clone()
+					);
+		
+		tokens.push(token);
+	}
 
-	let token3 = (	account.clone(),
-					"{'name': 'bloody','description': 'Desc','external_url': 'none yet','image': 'https://ipfs.io/ipfs/Qmd2iXiVSieLzuPkrXAHoarddoZUuW14nEW8pgMHJUX85Z'}".as_bytes().to_vec(),
-					data.clone());
-
-	vec![token1, token2, token3]
+	tokens
 }
