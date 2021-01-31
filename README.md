@@ -1,30 +1,26 @@
 # SubAuction
 
 SubAction is a project which brings various types of auctions of NFT tokens to Kusama and Polkadot. This project will allow users to
-create auctions, add items represented by the NFT tokens from the Unique Network, select the proper auction type and let
+create auctions, add items represented by the NFT tokens, select the proper auction type and let
 everybody compete and bid for the items of your choice.
 
 !["Auction
 Image"](https://img.etimg.com/thumb/width-600,height-400,imgsize-113275,resizemode-1,msid-76076103/news/politics-and-nation/auction-of-specially-plucked-teas-on-june-22-to-commemorate-international-tea-day.jpg)
 
-## Implementation of the NFT token
-You can find more information about our implementation and JSON metadata NFT format in our [docs](nft.md).
-
 ## Design philosophy
 
 Aim of this project is to create a platform which will support different kinds of auction for the upcoming prime time of the
-NFT tokens. As in the real world, items represented by the NFTs can be bought, sold, transfered and even auctioned to
+NFT tokens. As in the real world, items represented by the NFTs can be bought, sold, transferred and even auctioned to
 the highest bidder. There are actually various auction types serving multiple purposes and SubAuction's goal is to bring user one
 unified and easy-to-use interface for both buyers and sellers. 
 The whole process is configurable - user can set how long the auction should last, how many items will be auctioned
 and other settings which can even differ by the auction type.
 Also, very often users want to have multiple auctions which are started one by one. We would provide a framework which can
-automate the process so user could actually create an auction template and then use it accross its own defined sequence of auctions.
+automate the process so user could actually create an auction template and then use it across its own defined sequence of auctions.
 
 ## Auction types 
 
-MVP of this product will provide one single auction backend which will be the *candle auction*, not dissimilar to what
-Polkadot and Kusama provides for parachains. But there are also very interesting auction types out there which could prove useful in the
+MVP of this product will provide one single auction backend which will be the *english auction*, the classic between amongst auctions. But there are also very interesting auction types out there which could prove useful in the
 blockchain space so here is a list of auctions which we find particularly suitable
 
 ### English auction 
@@ -74,6 +70,30 @@ price.
 There are mutliple variants of this kind of auctions but all of them revolve around the idea that multiple items are
 being auctioned at the same time. So, for example, a bidder can say he will pay for A and B but only if he can get both
 at the same time. 
+
+## Implementation of the NFT token
+You can find more information about our implementation and JSON metadata NFT format in our [docs](nft.md).
+
+### NFT token pallet
+
+We loosely based our `nft-pallet` on the [orml-nft](https://github.com/open-web3-stack/open-runtime-module-library/tree/master/nft) implementation. We added couple of things to our own pallet
+- Token locking (token owner shouldn't be able to transfer the NFT token after the auction is created)
+- Token genesis for easier development
+- Metadata followed by the ERC-721 [standard](https://docs.opensea.io/docs/metadata-standards)
+
+Goal of our nft pallet is to allow our application to easily replace one NFT implementation for another.
+
+### Auction pallet
+
+We have developed our auction pallet with flexibility in mind. This is the list of features we currently support
+
+ - Creating an auction with NFT token
+ - Bidding by other users and locking their funds via the `LockableCurrency`
+ - Auction time measured in blocks
+ - Conclusion automated via `on_initialize` callback
+ - Auction removal
+ - Various checks to prevent malicious actions
+ - Configuration parameters for the auction itself
 
 ## Developer instructions
 
