@@ -182,7 +182,7 @@ fn get_tokens(account: &AccountId) -> Vec<GenesisTokenData<AccountId, TokenData>
 
 
 	for n in 1..17 {
-		let full_url = url.clone() + &n.to_string() + ".png";
+		let full_url = url.clone() + &n.to_string() + ".png'}";
 		let token = (
 					account.clone(),
 					full_url.as_bytes().to_vec(),
