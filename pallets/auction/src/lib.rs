@@ -211,6 +211,8 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 		let current_block_number = frame_system::Module::<T>::block_number();
 		ensure!(current_block_number < auction.start, Error::<T>::AuctionAlreadyStarted);
 		pallet_nft::Module::<T>::toggle_lock(&auction.owner, auction.token_id);
+		<AuctionOwnerById<T>>::remove(id);
+		<Auctions<T>>::remove(id);
 		Ok(())
 	}
 
