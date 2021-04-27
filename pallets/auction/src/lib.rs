@@ -1,13 +1,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![allow(unused)]
+#![allow(clippy::unused_unit)]
+#![allow(clippy::upper_case_acronyms)]
 // Used for encoding/decoding into scale
 use codec::{Encode, Decode};
-use frame_support::{traits::{LockableCurrency, LockIdentifier, Currency, WithdrawReason, WithdrawReasons},
-					Parameter, decl_error, decl_event, decl_module, decl_storage, ensure, dispatch::{DispatchResult, DispatchError},
+use frame_support::{traits::{LockableCurrency, LockIdentifier, Currency, WithdrawReasons},
+					Parameter, ensure, dispatch::{DispatchResult, DispatchError},
 					debug};
 use frame_system::ensure_signed;
-use sp_runtime::{Permill, RuntimeDebug, traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, MaybeDisplay, Zero, CheckedAdd, CheckedSub, StaticLookup}};
-use sp_std::{fmt::Debug, result, vec::Vec};
+use sp_runtime::{Permill, traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Zero, CheckedAdd, CheckedSub, StaticLookup}};
+use sp_std::{result};
 pub use traits::*;
 use frame_support::traits::ExistenceRequirement;
 
@@ -19,19 +20,6 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-pub trait Trait: pallet_nft::Trait {
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
-
-	/// The balance type for bidding
-	type Balance: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize;
-
-	/// The auction ID type
-	type AuctionId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize + Bounded + CheckedAdd;
-
-	/// Single type currency (TODO multiple currencies)
-	type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
-}
-
 /// Identifier for the currency lock on accounts
 const AUCTION_LOCK_ID: LockIdentifier = *b"_auction";
 /// Set in percent how much next bid has to be raised
@@ -42,52 +30,78 @@ const BID_ADD_BLOCKS: u32 = 10;
 const MIN_AUCTION_DUR: u32 = 10;
 
 /// Define type aliases for better readability
-pub type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
+pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 pub type NftClassIdOf<T> = pallet_nft::ClassIdOf<T>;
 pub type NftTokenIdOf<T> = pallet_nft::TokenIdOf<T>;
-pub type AuctionInfoOf<T> = AuctionInfo<<T as frame_system::Trait>::AccountId,
+pub type AuctionInfoOf<T> = AuctionInfo<<T as frame_system::Config>::AccountId,
 																	BalanceOf<T>,
-										<T as frame_system::Trait>::BlockNumber,
+										<T as frame_system::Config>::BlockNumber,
 																	NftClassIdOf<T>,
 																	NftTokenIdOf<T>,
-									   >;
+									>;
 
-decl_storage! {
-	trait AuctionStore for Module<T: Trait> as AuctionModule {
-		/// Stores on-going and future auctions. Closed auction are removed.
-		// TODO: use single Auction storage using double map (auctionId, type)
-		pub Auctions get(fn auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfoOf<T>>;
+pub use pallet::*;
 
-		/// Track the next auction ID.
-		pub NextAuctionId get(fn auctions_index): T::AuctionId;
+#[frame_support::pallet]
+pub mod pallet {
+	use super::*;
+	use frame_support::pallet_prelude::*;
+	use frame_system::pallet_prelude::OriginFor;
 
-		/// Index auctions by end time.
-		pub AuctionEndTime get(fn auction_end_time): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) T::AuctionId => Option<()>;
+	#[pallet::pallet]
+	pub struct Pallet<T>(_);
 
-		/// Auction owner by ID
-		pub AuctionOwnerById get(fn auction_owner_by_id): map hasher(twox_64_concat) T::AuctionId => T::AccountId;
+	#[pallet::config]
+	pub trait Config: frame_system::Config + pallet_nft::Config {
+		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+		/// The balance type for bidding
+		type Balance: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize;
+
+		/// The auction ID type
+		type AuctionId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize + Bounded + CheckedAdd;
+
+		/// Single type currency (TODO multiple currencies)
+		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
 	}
-}
 
-decl_event!(
-	pub enum Event<T> where
-		<T as frame_system::Trait>::AccountId,
-		<T as Trait>::AuctionId,
-		Balance = BalanceOf<T>,
-	{
+	#[pallet::storage]
+	#[pallet::getter(fn auctions)]
+	/// Stores on-going and future auctions. Closed auction are removed.
+	// TODO: use single Auction storage using double map (auctionId, type)
+	pub type Auctions<T: Config> = StorageMap<_, Twox64Concat, T::AuctionId, AuctionInfoOf<T>, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn auctions_index)]
+	/// Track the next auction ID.
+	pub type NextAuctionId<T: Config> = StorageValue<_, T::AuctionId, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn auction_end_time)]
+	/// Index auctions by end time.
+	pub type AuctionEndTime<T: Config> = StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Twox64Concat, T::AuctionId, (), OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn auction_owner_by_id)]
+	/// Auction owner by ID
+	pub type AuctionOwnerById<T: Config> = StorageMap<_, Twox64Concat, T::AuctionId, T::AccountId, ValueQuery>;
+
+	#[pallet::event]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
+	pub enum Event<T: Config> {
 		/// Auction created
-		AuctionCreated(AccountId, AuctionId),
+		AuctionCreated(T::AccountId, T::AuctionId),
 		/// A bid is placed
-		Bid(AuctionId, AccountId, Balance),
+		Bid(T::AuctionId, T::AccountId, BalanceOf<T>),
 		/// Auction ended
-		AuctionConcluded(AuctionId),
+		AuctionConcluded(T::AuctionId),
 		/// Auction removed
-		AuctionRemoved(AuctionId),
+		AuctionRemoved(T::AuctionId),
 	}
-);
 
-decl_error! {
-	pub enum Error for Module<T: Trait> {
+
+	#[pallet::error]
+	pub enum Error<T> {
 		AuctionNotExist,
 		AuctionNotStarted,
 		AuctionAlreadyStarted,
@@ -105,44 +119,47 @@ decl_error! {
 		TokenLocked,
 		EmptyAuctionName,
 	}
-}
 
-decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-		type Error = Error<T>;
-
-		fn deposit_event() = default;
-
-		#[weight=0]
-		fn create_auction(origin, auction_info: AuctionInfoOf<T>) {
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {
+		
+		#[pallet::weight(1000)]
+		fn create_auction(origin: OriginFor<T>, auction_info: AuctionInfoOf<T>) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			let new_auction_id = Self::new_auction(auction_info)?;
-			Self::deposit_event(RawEvent::AuctionCreated(sender, new_auction_id));
+			Self::deposit_event(Event::AuctionCreated(sender, new_auction_id));
+			Ok(().into())
 		}
 
-		#[weight=0]
-		fn bid_value(origin, id: T::AuctionId, value: BalanceOf<T>) {
+		#[pallet::weight(1000)]
+		fn bid_value(origin: OriginFor<T>, id: T::AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
 			Self::bid(sender.clone(), id, value)?;
-			Self::deposit_event(RawEvent::Bid(id, sender, value));
+			Self::deposit_event(Event::Bid(id, sender, value));
+			Ok(().into())
 		}
 
-		#[weight=0]
-		fn delete_auction(origin, id: T::AuctionId) {
-			let sender = ensure_signed(origin)?;
+		#[pallet::weight(1000)]
+		fn delete_auction(origin: OriginFor<T>, id: T::AuctionId) -> DispatchResultWithPostInfo {
+			let _sender = ensure_signed(origin)?;
 
 			Self::remove_auction(id);
-			Self::deposit_event(RawEvent::AuctionRemoved(id));
+			Self::deposit_event(Event::AuctionRemoved(id));
+			Ok(().into())
 		}
+	}
 
+	#[pallet::hooks]
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		fn on_finalize(now: T::BlockNumber) {
 			Self::conclude_auction(now);
 		}
 	}
+
 }
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Pallet<T> {
 	fn conclude_auction(now: T::BlockNumber) {
 		for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
 			match Self::auctions(auction_id) {
@@ -175,13 +192,13 @@ impl<T: Trait> Module<T> {
 	}
 }
 
-impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenIdOf<T>> for Module<T>{
+impl<T: Config> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenIdOf<T>> for Pallet<T>{
 	type AuctionId = T::AuctionId;
 	type Balance = BalanceOf<T>;
 	type AccountId = T::AccountId;
 
 	fn new_auction(info: AuctionInfoOf<T>) -> result::Result<Self::AuctionId, DispatchError> {
-		/// Basic checks before an auction is created
+		// Basic checks before an auction is created
 		Self::check_new_auction(&info);
 		let auction_id = <NextAuctionId<T>>::try_mutate(|next_id| -> result::Result<Self::AuctionId, DispatchError> {
 			let current_id = *next_id;
@@ -189,7 +206,6 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 			Ok(current_id)
 		})?;
 
-		// fix clone
 		<Auctions<T>>::insert(auction_id, info.clone());
 		<AuctionOwnerById<T>>::insert(auction_id, &info.owner);
 		<AuctionEndTime<T>>::insert(info.end, auction_id, ());
@@ -218,7 +234,7 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 
 	fn bid(bidder: Self::AccountId, id: Self::AuctionId, value: Self::Balance) -> DispatchResult {
 		<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
-			/// Basic checks before a bid can be made
+			// Basic checks before a bid can be made
 			let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 			let block_number = <frame_system::Module<T>>::block_number();
 			ensure!(bidder != auction.owner, Error::<T>::BidOnOwnAuction);
@@ -227,12 +243,12 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 			ensure!(value >= auction.minimal_bid, Error::<T>::InvalidBidPrice);
 			if let Some(ref current_bid) = auction.last_bid {
 				ensure!(value > current_bid.1, Error::<T>::InvalidBidPrice);
-				/// Unlock funds from the previous bid
+				// Unlock funds from the previous bid
 				T::Currency::remove_lock(AUCTION_LOCK_ID, &current_bid.0);
 			} else {
 				ensure!(!value.is_zero(), Error::<T>::InvalidBidPrice);
 			}
-			/// Lock funds
+			// Lock funds
 			T::Currency::set_lock(
 				AUCTION_LOCK_ID,
 				&bidder,
@@ -240,10 +256,10 @@ impl<T: Trait> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenId
 				WithdrawReasons::all()
 			);
 			auction.last_bid = Some((bidder, value));
-			/// Set next minimal bid
+			// Set next minimal bid
 			let minimal_bid_step = Permill::from_percent(BID_STEP_PERC).mul_floor(value);
 			auction.minimal_bid = value.checked_add(&minimal_bid_step).ok_or(Error::<T>::BidOverflow)?;
-			/// Avoid auction sniping
+			// Avoid auction sniping
 			let time_left = auction.end.checked_sub(&block_number).ok_or(Error::<T>::TimeUnderflow)?;
 			if time_left < BID_ADD_BLOCKS.into() {
 				auction.end = block_number + BID_ADD_BLOCKS.into();

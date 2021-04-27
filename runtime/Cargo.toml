@@ -6,56 +6,56 @@ license = 'Apache-2.0'
 name = 'subauction-runtime'
 description = 'SubAuction is a parachain that brings various types of auctions for NFT tokens to the Kusama and Polkadot'
 repository = 'https://github.com/polkadotters/SubAuction'
-version = '0.0.1'
+version = '1.0.0'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
 
 [build-dependencies]
-wasm-builder-runner = { package = 'substrate-wasm-builder-runner', version = '2.0.0' }
+substrate-wasm-builder = '4.0.0'
 
 # alias "parity-scale-code" to "codec"
 [dependencies.codec]
 default-features = false
 features = ['derive']
 package = 'parity-scale-codec'
-version = '1.3.4'
+version = '2.0.0'
 
 [dependencies]
 hex-literal = { optional = true, version = '0.3.1' }
 serde = { features = ['derive'], optional = true, version = '1.0.101' }
 
 # local dependencies
-pallet-auction = { path = '../pallets/auction', default-features = false, version = '0.0.1' }
-pallet-nft = { path = '../pallets/nft', default-features = false, version = '0.0.1' }
+pallet-auction = { path = '../pallets/auction', default-features = false, version = '1.0.0' }
+pallet-nft = { path = '../pallets/nft', default-features = false, version = '1.0.0' }
 
 # Substrate dependencies
-frame-benchmarking = { default-features = false, optional = true, version = '2.0.0' }
-frame-executive = { default-features = false, version = '2.0.0' }
-frame-support = { default-features = false, version = '2.0.0' }
-frame-system = { default-features = false, version = '2.0.0' }
-frame-system-benchmarking = { default-features = false, optional = true, version = '2.0.0' }
-frame-system-rpc-runtime-api = { default-features = false, version = '2.0.0' }
-pallet-aura = { default-features = false, version = '2.0.0' }
-pallet-balances = { default-features = false, version = '2.0.0' }
-pallet-grandpa = { default-features = false, version = '2.0.0' }
-pallet-randomness-collective-flip = { default-features = false, version = '2.0.0' }
-pallet-sudo = { default-features = false, version = '2.0.0' }
-pallet-timestamp = { default-features = false, version = '2.0.0' }
-pallet-transaction-payment = { default-features = false, version = '2.0.0' }
-pallet-transaction-payment-rpc-runtime-api = { default-features = false, version = '2.0.0' }
-sp-api = { default-features = false, version = '2.0.0' }
-sp-block-builder = { default-features = false, version = '2.0.0' }
-sp-consensus-aura = { default-features = false, version = '0.8.0' }
-sp-core = { default-features = false, version = '2.0.0' }
-sp-inherents = { default-features = false, version = '2.0.0' }
-sp-offchain = { default-features = false, version = '2.0.0' }
-sp-runtime = { default-features = false, version = '2.0.0' }
-sp-session = { default-features = false, version = '2.0.0' }
-sp-std = { default-features = false, version = '2.0.0' }
-sp-transaction-pool = { default-features = false, version = '2.0.0' }
-sp-version = { default-features = false, version = '2.0.0' }
-orml-nft = { default-features = false, version = '0.3.4' }
+frame-benchmarking = { default-features = false, optional = true, version = '3.0.0' }
+frame-executive = { default-features = false, version = '3.0.0' }
+frame-support = { default-features = false, version = '3.0.0' }
+frame-system = { default-features = false, version = '3.0.0' }
+frame-system-benchmarking = { default-features = false, optional = true, version = '3.0.0' }
+frame-system-rpc-runtime-api = { default-features = false, version = '3.0.0' }
+pallet-aura = { default-features = false, version = '3.0.0' }
+pallet-balances = { default-features = false, version = '3.0.0' }
+pallet-grandpa = { default-features = false, version = '3.0.0' }
+pallet-randomness-collective-flip = { default-features = false, version = '3.0.0' }
+pallet-sudo = { default-features = false, version = '3.0.0' }
+pallet-timestamp = { default-features = false, version = '3.0.0' }
+pallet-transaction-payment = { default-features = false, version = '3.0.0' }
+pallet-transaction-payment-rpc-runtime-api = { default-features = false, version = '3.0.0' }
+sp-api = { default-features = false, version = '3.0.0' }
+sp-block-builder = { default-features = false, version = '3.0.0' }
+sp-consensus-aura = { default-features = false, version = '0.9.0' }
+sp-core = { default-features = false, version = '3.0.0' }
+sp-inherents = { default-features = false, version = '3.0.0' }
+sp-offchain = { default-features = false, version = '3.0.0' }
+sp-runtime = { default-features = false, version = '3.0.0' }
+sp-session = { default-features = false, version = '3.0.0' }
+sp-std = { default-features = false, version = '3.0.0' }
+sp-transaction-pool = { default-features = false, version = '3.0.0' }
+sp-version = { default-features = false, version = '3.0.0' }
+orml-nft = { default-features = false, version = '0.4.0' }
 
 [features]
 default = ['std']

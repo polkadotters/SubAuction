@@ -38,7 +38,7 @@ parameter_types! {
     pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
-impl Trait for Test {
+impl Config for Test {
     type Event = Event;
 	type Balance = u128;
 	type AuctionId = u64;
@@ -50,7 +50,7 @@ type System = frame_system::Module<Test>;
 type Balances = pallet_balances::Module<Test>;
 type NFT = pallet_nft::Module<Test>;
 
-impl frame_system::Trait for Test {
+impl frame_system::Config for Test {
 	type BaseCallFilter = ();
 	type Origin = Origin;
 	type Call = ();
@@ -81,7 +81,7 @@ impl frame_system::Trait for Test {
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
 }
-impl pallet_balances::Trait for Test {
+impl pallet_balances::Config for Test {
 	type MaxLocks = ();
 	type Balance = u64;
 	type Event = Event;
@@ -91,14 +91,14 @@ impl pallet_balances::Trait for Test {
 	type WeightInfo = ();
 }
 
-impl orml_nft::Trait for Test {
+impl orml_nft::Config for Test {
     type ClassId = u64;
 	type TokenId = u64;
 	type ClassData = u32;
 	type TokenData = pallet_nft::TokenData;
 }
 
-impl pallet_nft::Trait for Test {
+impl pallet_nft::Config for Test {
     type Event = Event;
 }
 
@@ -133,6 +133,7 @@ fn can_create_auction() {
 			last_bid: None,
 			start: 1,
 			end: 20,
+			owner: None,
 			auction_type: AuctionType::English,
 			token_id: (0,0),
 			minimal_bid: 50,
