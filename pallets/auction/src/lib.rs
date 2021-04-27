@@ -2,10 +2,9 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::upper_case_acronyms)]
 // Used for encoding/decoding into scale
-use codec::{Encode, Decode};
 use frame_support::{traits::{LockableCurrency, LockIdentifier, Currency, WithdrawReasons},
 					Parameter, ensure, dispatch::{DispatchResult, DispatchError},
-					debug};
+					};
 use frame_system::ensure_signed;
 use sp_runtime::{Permill, traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Zero, CheckedAdd, CheckedSub, StaticLookup}};
 use sp_std::{result};
@@ -124,7 +123,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		
 		#[pallet::weight(1000)]
-		fn create_auction(origin: OriginFor<T>, auction_info: AuctionInfoOf<T>) -> DispatchResultWithPostInfo {
+		pub fn create_auction(origin: OriginFor<T>, auction_info: AuctionInfoOf<T>) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			let new_auction_id = Self::new_auction(auction_info)?;
 			Self::deposit_event(Event::AuctionCreated(sender, new_auction_id));
@@ -132,7 +131,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(1000)]
-		fn bid_value(origin: OriginFor<T>, id: T::AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
+		pub fn bid_value(origin: OriginFor<T>, id: T::AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
 			Self::bid(sender.clone(), id, value)?;
@@ -141,10 +140,10 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(1000)]
-		fn delete_auction(origin: OriginFor<T>, id: T::AuctionId) -> DispatchResultWithPostInfo {
+		pub fn delete_auction(origin: OriginFor<T>, id: T::AuctionId) -> DispatchResultWithPostInfo {
 			let _sender = ensure_signed(origin)?;
 
-			Self::remove_auction(id);
+			Self::remove_auction(id).ok();
 			Self::deposit_event(Event::AuctionRemoved(id));
 			Ok(().into())
 		}
@@ -164,14 +163,14 @@ impl<T: Config> Pallet<T> {
 		for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
 			match Self::auctions(auction_id) {
 				Some(auction) => {
-					pallet_nft::Module::<T>::toggle_lock(&auction.owner, auction.token_id);
+					pallet_nft::Module::<T>::toggle_lock(&auction.owner, auction.token_id).ok();
 					// there is a bid so let's determine a winner and transfer tokens
 					if let Some(ref winner) = auction.last_bid {
 						let dest = T::Lookup::unlookup(winner.0.clone());
 						let source = T::Origin::from(frame_system::RawOrigin::Signed(auction.owner.clone()));
-						pallet_nft::Module::<T>::transfer(source, dest, auction.token_id);
+						pallet_nft::Module::<T>::transfer(source, dest, auction.token_id).ok();
 						T::Currency::remove_lock(AUCTION_LOCK_ID, &winner.0);
-						<T::Currency as Currency<T::AccountId>>::transfer(&winner.0, &auction.owner, winner.1, ExistenceRequirement::KeepAlive);
+						<T::Currency as Currency<T::AccountId>>::transfer(&winner.0, &auction.owner, winner.1, ExistenceRequirement::KeepAlive).ok();
 					}
 				}
 				None => ()
@@ -199,7 +198,7 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenI
 
 	fn new_auction(info: AuctionInfoOf<T>) -> result::Result<Self::AuctionId, DispatchError> {
 		// Basic checks before an auction is created
-		Self::check_new_auction(&info);
+		Self::check_new_auction(&info).ok();
 		let auction_id = <NextAuctionId<T>>::try_mutate(|next_id| -> result::Result<Self::AuctionId, DispatchError> {
 			let current_id = *next_id;
 			*next_id = next_id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableAuctionId)?;
@@ -209,7 +208,7 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenI
 		<Auctions<T>>::insert(auction_id, info.clone());
 		<AuctionOwnerById<T>>::insert(auction_id, &info.owner);
 		<AuctionEndTime<T>>::insert(info.end, auction_id, ());
-		pallet_nft::Module::<T>::toggle_lock(&info.owner, info.token_id);
+		pallet_nft::Module::<T>::toggle_lock(&info.owner, info.token_id).ok();
 
 		Ok(auction_id)
 	}
@@ -226,7 +225,7 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber, NftClassIdOf<T>, NftTokenI
 		let auction = <Auctions<T>>::take(id).ok_or(Error::<T>::AuctionNotExist)?;
 		let current_block_number = frame_system::Module::<T>::block_number();
 		ensure!(current_block_number < auction.start, Error::<T>::AuctionAlreadyStarted);
-		pallet_nft::Module::<T>::toggle_lock(&auction.owner, auction.token_id);
+		pallet_nft::Module::<T>::toggle_lock(&auction.owner, auction.token_id).ok();
 		<AuctionOwnerById<T>>::remove(id);
 		<Auctions<T>>::remove(id);
 		Ok(())

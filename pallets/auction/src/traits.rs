@@ -1,7 +1,7 @@
 use codec::{Encode, Decode};
-use frame_support::{traits::{Currency}, Parameter, dispatch::{DispatchResult, DispatchError}};
+use frame_support::{Parameter, dispatch::{DispatchResult, DispatchError}};
 use sp_runtime::{
-	traits::{AtLeast32Bit, AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, MaybeDisplay},
+	traits::{AtLeast32Bit, Bounded, MaybeSerializeDeserialize, Member, MaybeDisplay},
 	RuntimeDebug
 };
 use sp_std::{fmt::{Display, Debug, Formatter}, result, vec::Vec};
