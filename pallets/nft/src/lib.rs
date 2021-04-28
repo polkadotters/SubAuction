@@ -2,7 +2,7 @@
 #![allow(clippy::unused_unit)]
 
 use codec::{Encode, Decode};
-use frame_support::{ensure, dispatch::{DispatchResultWithPostInfo, DispatchError}};
+use frame_support::{dispatch::{DispatchError, DispatchResult, DispatchResultWithPostInfo}, ensure};
 use frame_system::ensure_signed;
 use sp_runtime::{traits::{StaticLookup, Zero}, RuntimeDebug};
 use sp_std::vec::Vec;
@@ -170,9 +170,9 @@ impl<T: Config> Pallet<T> {
 		Ok(token_info.data.locked)
 	} 
 
-	pub fn toggle_lock(account: &T::AccountId, token_id: (T::ClassId, T::TokenId)) -> DispatchResultWithPostInfo {
+	pub fn toggle_lock(account: &T::AccountId, token_id: (T::ClassId, T::TokenId)) -> DispatchResult {
 		let _class_info = orml_nft::Module::<T>::classes(token_id.0).ok_or(Error::<T>::ClassNotFound)?;
-		orml_nft::Tokens::<T>::mutate_exists(token_id.0, token_id.1, |token| -> DispatchResultWithPostInfo {
+		orml_nft::Tokens::<T>::mutate_exists(token_id.0, token_id.1, |token| -> DispatchResult {
 			if let Some(ref mut token) = token {
 				ensure!(*account == token.owner, Error::<T>::NoPermission);
 				token.data.locked ^= true; // Toggle
