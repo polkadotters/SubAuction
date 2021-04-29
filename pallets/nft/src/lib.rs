@@ -6,8 +6,13 @@ use frame_support::{dispatch::{DispatchError, DispatchResult, DispatchResultWith
 use frame_system::ensure_signed;
 use sp_runtime::{traits::{StaticLookup, Zero}, RuntimeDebug};
 use sp_std::vec::Vec;
+use weights::WeightInfo;
+
+mod benchmarking;
+pub mod weights;
 
 pub type CID = Vec<u8>;
+pub type ClassData = u32;
 pub type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
 pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
 pub type GenesisTokenData<AccountId, TokenData> = (
@@ -41,8 +46,9 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + orml_nft::Config<TokenData = TokenData> {
+	pub trait Config: frame_system::Config + orml_nft::Config<ClassData = ClassData, TokenData = TokenData> {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::genesis_config]
@@ -74,7 +80,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 
-		#[pallet::weight(1000)]
+		#[pallet::weight(<T as Config>::WeightInfo::create_class())]
 		pub fn create_class(origin: OriginFor<T>, metadata: CID, data: T::ClassData) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			let _result = orml_nft::Module::<T>::create_class(&sender, metadata, data)?;
@@ -82,7 +88,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(1000)]
+		#[pallet::weight(<T as Config>::WeightInfo::mint())]
 		pub fn mint(origin: OriginFor<T>, class_id: <T as orml_nft::Config>::ClassId, metadata: CID, token_data: TokenData) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			let class_info = orml_nft::Module::<T>::classes(class_id).ok_or(Error::<T>::ClassNotFound)?;
@@ -94,7 +100,7 @@ pub mod pallet {
             Ok(().into())
 		}
 
-		#[pallet::weight(1000)]
+		#[pallet::weight(<T as Config>::WeightInfo::transfer())]
 		pub fn transfer(origin: OriginFor<T>, dest: <T::Lookup as StaticLookup>::Source, token: (T::ClassId, T::TokenId)) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			let _class_info = orml_nft::Module::<T>::classes(token.0).ok_or(Error::<T>::ClassNotFound)?;
@@ -107,7 +113,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(1000)]
+		#[pallet::weight(<T as Config>::WeightInfo::burn())]
 		pub fn burn(origin: OriginFor<T>, token: (T::ClassId, T::TokenId)) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			let _class_info = orml_nft::Module::<T>::classes(token.0).ok_or(Error::<T>::ClassNotFound)?;
@@ -119,7 +125,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(1000)]
+		#[pallet::weight(<T as Config>::WeightInfo::destroy_class())]
 		pub fn destroy_class(origin: OriginFor<T>, class_id: T::ClassId) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			let class_info = orml_nft::Module::<T>::classes(class_id).ok_or(Error::<T>::ClassNotFound)?;

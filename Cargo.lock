@@ -3681,6 +3681,7 @@ dependencies = [
 name = "pallet-auction"
 version = "1.0.0"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "orml-nft",
@@ -3770,6 +3771,7 @@ dependencies = [
 name = "pallet-nft"
 version = "1.0.0"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "orml-nft",
