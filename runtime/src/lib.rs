@@ -277,6 +277,8 @@ impl pallet_auction::Config for Runtime {
 	type Balance = Balance;
 	type AuctionId = u64;
 	type Currency = Balances;
+	type WeightInfo = pallet_auction::weights::SubstrateWeight<Runtime>;
+	type CurrencyBalance = Balance;
 }
 
 construct_runtime!(
@@ -500,6 +502,7 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, pallet_balances, Balances);
 			add_benchmark!(params, batches, pallet_timestamp, Timestamp);
 			add_benchmark!(params, batches, pallet_nft, Nft);
+			add_benchmark!(params, batches, pallet_auction, Auctions);
 
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
 			Ok(batches)

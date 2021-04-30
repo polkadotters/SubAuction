@@ -7,9 +7,13 @@ use frame_support::{traits::{LockableCurrency, LockIdentifier, Currency, Withdra
 					};
 use frame_system::ensure_signed;
 use sp_runtime::{Permill, traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Zero, CheckedAdd, CheckedSub, StaticLookup}};
-use sp_std::{result};
+use sp_std::result;
 pub use traits::*;
 use frame_support::traits::ExistenceRequirement;
+use weights::WeightInfo;
+
+mod benchmarking;
+pub mod weights;
 
 pub mod traits;
 
@@ -62,6 +66,13 @@ pub mod pallet {
 
 		/// Single type currency (TODO multiple currencies)
 		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+
+		/// Weights
+		type WeightInfo: WeightInfo;
+
+		// This type is needed to convert from Currency to Balance
+		type CurrencyBalance: From<Self::Balance>
+			+ Into<<Self::Currency as Currency<<Self as frame_system::Config>::AccountId>>::Balance>;
 	}
 
 	#[pallet::storage]
@@ -122,7 +133,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		
-		#[pallet::weight(1000)]
+		#[pallet::weight(<T as Config>::WeightInfo::create_auction())]
 		pub fn create_auction(origin: OriginFor<T>, auction_info: AuctionInfoOf<T>) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			let new_auction_id = Self::new_auction(auction_info)?;
@@ -130,7 +141,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(1000)]
+		#[pallet::weight(<T as Config>::WeightInfo::bid_value())]
 		pub fn bid_value(origin: OriginFor<T>, id: T::AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
@@ -139,7 +150,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(1000)]
+		#[pallet::weight(<T as Config>::WeightInfo::delete_auction())]
 		pub fn delete_auction(origin: OriginFor<T>, id: T::AuctionId) -> DispatchResultWithPostInfo {
 			let _sender = ensure_signed(origin)?;
 
@@ -181,7 +192,7 @@ impl<T: Config> Pallet<T> {
 	fn check_new_auction(info: &AuctionInfoOf<T>) -> DispatchResult {
 		let current_block_number = frame_system::Module::<T>::block_number();
 		ensure!(info.start >= current_block_number, Error::<T>::AuctionStartTimeAlreadyPassed);
-		ensure!(info.start != Zero::zero() && info.end != Zero::zero() && info.end > info.start + MIN_AUCTION_DUR.into(), Error::<T>::InvalidTimeConfiguration);
+		ensure!(info.start >= Zero::zero() && info.end > Zero::zero() && info.end > info.start + MIN_AUCTION_DUR.into(), Error::<T>::InvalidTimeConfiguration);
 		ensure!(!info.name.is_empty(), Error::<T>::EmptyAuctionName);
 		let is_owner = pallet_nft::Module::<T>::is_owner(&info.owner, info.token_id);
 		ensure!(is_owner, Error::<T>::NotATokenOwner);
