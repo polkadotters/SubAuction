@@ -1,10 +1,17 @@
-use codec::{Encode, Decode};
-use frame_support::{Parameter, dispatch::{DispatchResult, DispatchError}};
-use sp_runtime::{
-	traits::{AtLeast32Bit, Bounded, MaybeSerializeDeserialize, Member, MaybeDisplay},
-	RuntimeDebug
+use codec::{Decode, Encode};
+use frame_support::{
+	dispatch::{DispatchError, DispatchResult},
+	Parameter,
 };
-use sp_std::{fmt::{Display, Debug, Formatter}, result, vec::Vec};
+use sp_runtime::{
+	traits::{AtLeast32Bit, Bounded, MaybeDisplay, MaybeSerializeDeserialize, Member},
+	RuntimeDebug,
+};
+use sp_std::{
+	fmt::{Debug, Display, Formatter},
+	result,
+	vec::Vec,
+};
 
 #[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum AuctionType {
@@ -22,7 +29,9 @@ impl Display for AuctionType {
 }
 
 impl Default for AuctionType {
-	fn default() -> Self { AuctionType::English }
+	fn default() -> Self {
+		AuctionType::English
+	}
 }
 
 #[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq)]
@@ -51,11 +60,16 @@ pub trait Auction<AccountId, BlockNumber, NftClassId, NftTokenId> {
 	type AccountId: Parameter + Member + MaybeSerializeDeserialize + Debug + MaybeDisplay + Ord + Default;
 
 	/// Create new auction with specific startblock and endblock, return the id
-	fn new_auction(info: AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>) -> result::Result<Self::AuctionId, DispatchError>;
+	fn new_auction(
+		info: AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>,
+	) -> result::Result<Self::AuctionId, DispatchError>;
 	/// Update the auction info of `id` with `info`
-	fn update_auction(id: Self::AuctionId, info: AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>) -> DispatchResult;
+	fn update_auction(
+		id: Self::AuctionId,
+		info: AuctionInfo<Self::AccountId, Self::Balance, BlockNumber, NftClassId, NftTokenId>,
+	) -> DispatchResult;
 	/// Remove auction by `id`
 	fn remove_auction(id: Self::AuctionId) -> DispatchResult;
 	/// Bid
-	fn bid(bidder: Self::AccountId, id: Self::AuctionId,  value: Self::Balance) -> DispatchResult;
+	fn bid(bidder: Self::AccountId, id: Self::AuctionId, value: Self::Balance) -> DispatchResult;
 }

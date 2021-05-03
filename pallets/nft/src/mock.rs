@@ -1,13 +1,15 @@
-use crate as pallet_auction;
-use frame_support::parameter_types;
-use frame_system as system;
+use super::*;
+use crate as pallet_nft;
+
+use frame_support::{parameter_types, weights::Weight};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
+	Perbill,
 };
 
-mod auction {
+mod nfc {
 	// Re-export needed for `impl_outer_event!`.
 	pub use super::super::*;
 }
@@ -23,20 +25,10 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Auctions: pallet_auction::{Module, Call, Storage, Event<T>},
 		OrmlNft: orml_nft::{Module, Storage},
 		Nft: pallet_nft::{Module, Call, Config<T>, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 	}
 );
-
-/// Balance of an account.
-pub type Balance = u128;
-
-parameter_types! {
-	pub const BlockHashCount: u64 = 250;
-	pub const SS58Prefix: u8 = 42;
-}
 
 impl pallet_nft::Config for Test {
 	type Event = Event;
@@ -50,33 +42,14 @@ impl orml_nft::Config for Test {
 	type TokenData = pallet_nft::TokenData;
 }
 
-impl pallet_auction::Config for Test {
-	type Event = Event;
-	type Balance = Balance;
-	type AuctionId = u64;
-	type Currency = Balances;
-	type CurrencyBalance = Balance;
-	type WeightInfo = pallet_auction::weights::SubstrateWeight<Test>;
-}
-
 parameter_types! {
-	pub const ExistentialDeposit: u128 = 500;
-	pub const MaxLocks: u32 = 50;
+	pub const BlockHashCount: u64 = 250;
+	pub const MaximumBlockWeight: Weight = 1024;
+	pub const MaximumBlockLength: u32 = 2 * 1024;
+	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
-impl pallet_balances::Config for Test {
-	type MaxLocks = MaxLocks;
-	/// The type for recording an account's balance.
-	type Balance = Balance;
-	/// The ubiquitous event type.
-	type Event = Event;
-	type DustRemoval = ();
-	type ExistentialDeposit = ExistentialDeposit;
-	type AccountStore = System;
-	type WeightInfo = pallet_balances::weights::SubstrateWeight<Test>;
-}
-
-impl system::Config for Test {
+impl frame_system::Config for Test {
 	type BaseCallFilter = ();
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -94,9 +67,19 @@ impl system::Config for Test {
 	type BlockHashCount = BlockHashCount;
 	type Version = ();
 	type PalletInfo = PalletInfo;
-	type AccountData = pallet_balances::AccountData<Balance>;
+	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
-	type SS58Prefix = SS58Prefix;
+	type SS58Prefix = ();
+}
+
+// Build genesis storage according to the mock runtime.
+pub fn new_test_ext() -> sp_io::TestExternalities {
+	let mut t: sp_io::TestExternalities = frame_system::GenesisConfig::default()
+		.build_storage::<Test>()
+		.unwrap()
+		.into();
+	t.execute_with(|| System::set_block_number(1));
+	t
 }
