@@ -293,8 +293,8 @@ construct_runtime!(
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 
 		Auctions: pallet_auction::{Module, Call, Storage, Event<T>},
-		OrmlNft: orml_nft::{Module, Storage},
-		Nft: pallet_nft::{Module, Call, Config<T>, Storage, Event<T>},
+		OrmlNft: orml_nft::{Module, Storage, Config<T>},
+		Nft: pallet_nft::{Module, Call, Event<T>},
 	}
 );
 

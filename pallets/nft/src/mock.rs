@@ -2,7 +2,7 @@ use super::*;
 use crate as pallet_nft;
 
 use frame_support::{parameter_types, weights::Weight};
-use sp_core::H256;
+use sp_core::{crypto::AccountId32, H256};
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
@@ -14,6 +14,7 @@ mod nfc {
 	pub use super::super::*;
 }
 
+type AccountId = AccountId32;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
@@ -26,7 +27,8 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		OrmlNft: orml_nft::{Module, Storage},
-		Nft: pallet_nft::{Module, Call, Config<T>, Storage, Event<T>},
+		Nft: pallet_nft::{Module, Call, Event<T>},
+		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 	}
 );
 
@@ -60,26 +62,61 @@ impl frame_system::Config for Test {
 	type BlockNumber = u64;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
-	type AccountId = u64;
+	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
 	type Event = Event;
 	type BlockHashCount = BlockHashCount;
 	type Version = ();
 	type PalletInfo = PalletInfo;
-	type AccountData = ();
+	type AccountData = pallet_balances::AccountData<Balance>;
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 }
 
-// Build genesis storage according to the mock runtime.
-pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t: sp_io::TestExternalities = frame_system::GenesisConfig::default()
-		.build_storage::<Test>()
-		.unwrap()
-		.into();
-	t.execute_with(|| System::set_block_number(1));
-	t
+parameter_types! {
+	pub const ExistentialDeposit: u64 = 1;
+}
+impl pallet_balances::Config for Test {
+	type Balance = Balance;
+	type Event = Event;
+	type DustRemoval = ();
+	type ExistentialDeposit = ExistentialDeposit;
+	type AccountStore = frame_system::Module<Test>;
+	type MaxLocks = ();
+	type WeightInfo = ();
+}
+
+pub const ALICE: AccountId = AccountId::new([1u8; 32]);
+
+pub struct ExtBuilder;
+impl Default for ExtBuilder {
+	fn default() -> Self {
+		ExtBuilder
+	}
+}
+
+impl ExtBuilder {
+	pub fn build(self) -> sp_io::TestExternalities {
+		let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+
+		pallet_balances::GenesisConfig::<Test> {
+			balances: vec![(ALICE, 100000)],
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
+
+		let mut ext = sp_io::TestExternalities::new(t);
+		ext.execute_with(|| System::set_block_number(1));
+		ext
+	}
+}
+
+pub fn last_event() -> Event {
+	frame_system::Pallet::<Test>::events()
+		.pop()
+		.expect("Event expected")
+		.event
 }

@@ -24,20 +24,10 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub type Balance = u128;
 pub type ClassData = u32;
 pub type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
 pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
-pub type GenesisTokenData<AccountId, TokenData> = (
-	AccountId, // Token owner
-	Vec<u8>,   // Token metadata
-	TokenData,
-);
-pub type GenesisTokens<AccountId, ClassData, TokenData> = (
-	AccountId, // Token class owner
-	Vec<u8>,   // Token class metadata
-	ClassData,
-	Vec<GenesisTokenData<AccountId, TokenData>>, // Vector of tokens belonging to this class
-);
 
 #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Encode, Decode, RuntimeDebug, Clone, PartialEq, Eq)]
@@ -61,34 +51,6 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + orml_nft::Config<ClassData = ClassData, TokenData = TokenData> {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type WeightInfo: WeightInfo;
-	}
-
-	#[pallet::genesis_config]
-	pub struct GenesisConfig<T: Config> {
-		pub tokens:
-			Vec<GenesisTokens<T::AccountId, <T as orml_nft::Config>::ClassData, <T as orml_nft::Config>::TokenData>>,
-	}
-
-	#[cfg(feature = "std")]
-	impl<T: Config> Default for GenesisConfig<T> {
-		fn default() -> Self {
-			GenesisConfig { tokens: vec![] }
-		}
-	}
-
-	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
-		fn build(&self) {
-			self.tokens.iter().for_each(|token_class| {
-				let class_id =
-					orml_nft::Module::<T>::create_class(&token_class.0, token_class.1.to_vec(), token_class.2)
-						.expect("Create class cannot fail while building genesis");
-				for (account_id, token_metadata, token_data) in &token_class.3 {
-					orml_nft::Module::<T>::mint(&account_id, class_id, token_metadata.to_vec(), token_data.clone())
-						.expect("Token mint cannot fail during genesis");
-				}
-			})
-		}
 	}
 
 	#[pallet::call]

@@ -24,8 +24,8 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		Auctions: pallet_auction::{Module, Call, Storage, Event<T>},
-		OrmlNft: orml_nft::{Module, Storage},
-		Nft: pallet_nft::{Module, Call, Config<T>, Storage, Event<T>},
+		OrmlNft: orml_nft::{Module, Storage, Config<T>},
+		Nft: pallet_nft::{Module, Call, Event<T>},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 	}
 );

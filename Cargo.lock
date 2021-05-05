@@ -3775,6 +3775,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "orml-nft",
+ "pallet-balances",
  "parity-scale-codec",
  "serde",
  "sp-core",

@@ -1,4 +1,5 @@
-use pallet_nft::{GenesisTokenData, GenesisTokens, TokenData};
+use orml_nft::{GenesisTokenData, GenesisTokens};
+use pallet_nft::TokenData;
 use sc_service::ChainType;
 use serde_json::map::Map;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -7,7 +8,7 @@ use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
 use sp_std::vec::Vec;
 use subauction_runtime::{
-	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, NftConfig, Signature, SudoConfig,
+	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, OrmlNftConfig, Runtime, Signature, SudoConfig,
 	SystemConfig, WASM_BINARY,
 };
 
@@ -156,15 +157,15 @@ fn testnet_genesis(
 			// Assign network admin rights.
 			key: root_key,
 		}),
-		pallet_nft: Some(NftConfig {
+		orml_nft: Some(OrmlNftConfig {
 			tokens: create_testnet_tokens(&endowed_accounts),
 		}),
 	}
 }
 
-fn create_testnet_tokens(accounts: &[AccountId]) -> Vec<GenesisTokens<AccountId, u32, TokenData>> {
+fn create_testnet_tokens(accounts: &[AccountId]) -> Vec<GenesisTokens<Runtime>> {
 	// for each account create token class and mint few tokens
-	let mut tokens = Vec::<GenesisTokens<AccountId, u32, TokenData>>::new();
+	let mut tokens = Vec::<GenesisTokens<Runtime>>::new();
 	accounts.iter().for_each(|account| {
 		let token_class = (
 			account.clone(),
@@ -177,7 +178,7 @@ fn create_testnet_tokens(accounts: &[AccountId]) -> Vec<GenesisTokens<AccountId,
 	tokens
 }
 
-fn get_tokens(account: &AccountId) -> Vec<GenesisTokenData<AccountId, TokenData>> {
+fn get_tokens(account: &AccountId) -> Vec<GenesisTokenData<Runtime>> {
 	let data = TokenData { locked: false };
 	let mut tokens = Vec::new();
 	let url = "{'name': 'Gallery Image','description': '', 'image': 'https://ipfs.io/ipfs/QmPfupQ5iyfF2QCE9W8tLdBpCbrmdNLmfQyoYuMk93eWyt/".to_owned();
