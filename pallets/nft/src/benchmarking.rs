@@ -73,7 +73,6 @@ mod tests {
 	use super::mock::Test;
 	use super::*;
 	use crate::mock::new_test_ext;
-	use crate::*;
 	use frame_support::assert_ok;
 
 	#[test]
