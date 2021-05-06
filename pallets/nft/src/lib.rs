@@ -58,8 +58,8 @@ pub mod pallet {
 		#[pallet::weight(<T as Config>::WeightInfo::create_class())]
 		pub fn create_class(origin: OriginFor<T>, metadata: Vec<u8>, data: T::ClassData) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			let _result = orml_nft::Module::<T>::create_class(&sender, metadata, data)?;
-			Self::deposit_event(Event::NFTTokenClassCreated(sender));
+			let class_id = orml_nft::Module::<T>::create_class(&sender, metadata, data)?;
+			Self::deposit_event(Event::NFTTokenClassCreated(sender, class_id));
 			Ok(().into())
 		}
 
@@ -92,7 +92,7 @@ pub mod pallet {
 			ensure!(sender == token_info.owner, Error::<T>::NoPermission);
 			ensure!(!token_info.data.locked, Error::<T>::TokenLocked);
 			let to: T::AccountId = T::Lookup::lookup(dest)?;
-			let _result = orml_nft::Module::<T>::transfer(&sender, &to, token);
+			orml_nft::Module::<T>::transfer(&sender, &to, token)?;
 			Self::deposit_event(Event::NFTTokenTransferred(sender, to, token.0, token.1));
 			Ok(().into())
 		}
@@ -104,7 +104,7 @@ pub mod pallet {
 			let token_info = orml_nft::Module::<T>::tokens(token.0, token.1).ok_or(Error::<T>::TokenNotFound)?;
 			ensure!(sender == token_info.owner, Error::<T>::NoPermission);
 			ensure!(!token_info.data.locked, Error::<T>::TokenLocked);
-			let _result = orml_nft::Module::<T>::burn(&sender, token)?;
+			orml_nft::Module::<T>::burn(&sender, token)?;
 			Self::deposit_event(Event::NFTTokenBurned(sender, token.1));
 			Ok(().into())
 		}
@@ -118,7 +118,7 @@ pub mod pallet {
 				class_info.total_issuance == Zero::zero(),
 				Error::<T>::CannotDestroyClass
 			);
-			let _result = orml_nft::Module::<T>::destroy_class(&sender, class_id)?;
+			orml_nft::Module::<T>::destroy_class(&sender, class_id)?;
 			Self::deposit_event(Event::NFTTokenClassDestroyed(sender, class_id));
 			Ok(().into())
 		}
@@ -130,7 +130,7 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
-		NFTTokenClassCreated(T::AccountId),
+		NFTTokenClassCreated(T::AccountId, T::ClassId),
 		NFTTokenMinted(T::AccountId, T::ClassId, T::TokenId),
 		NFTTokenMintedLockToggled(T::AccountId, T::ClassId, T::TokenId, bool),
 		NFTTokenTransferred(T::AccountId, T::AccountId, T::ClassId, T::TokenId),

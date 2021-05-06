@@ -13,7 +13,7 @@ fn can_create_token_class() {
 			"token".as_bytes().to_vec(),
 			Default::default()
 		));
-		let event = Event::pallet_nft(crate::Event::NFTTokenClassCreated(ALICE));
+		let event = Event::pallet_nft(crate::Event::NFTTokenClassCreated(ALICE, 0));
 		assert_eq!(last_event(), event);
 	})
 }

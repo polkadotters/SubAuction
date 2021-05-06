@@ -75,6 +75,12 @@ mod tests {
 	use crate::mock::new_test_ext;
 	use frame_support::assert_ok;
 
+	pub fn new_test_ext() -> sp_io::TestExternalities {
+		let mut ext = ExtBuilder::default().build();
+		ext.execute_with(|| System::set_block_number(1));
+		ext
+	}
+
 	#[test]
 	fn test_benchmarks() {
 		new_test_ext().execute_with(|| {

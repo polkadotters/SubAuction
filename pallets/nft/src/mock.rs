@@ -91,12 +91,6 @@ impl pallet_balances::Config for Test {
 
 pub const ALICE: AccountId = AccountId::new([1u8; 32]);
 
-pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut ext = ExtBuilder::default().build();
-	ext.execute_with(|| System::set_block_number(1));
-	ext
-}
-
 pub struct ExtBuilder;
 impl Default for ExtBuilder {
 	fn default() -> Self {
