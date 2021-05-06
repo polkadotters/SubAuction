@@ -13,7 +13,8 @@ fn create_nft() {
 		Origin::signed(100),
 		0,
 		"Class1_mint1".as_bytes().to_vec(),
-		TokenData { locked: false }
+		TokenData { locked: false },
+		1
 	));
 }
 

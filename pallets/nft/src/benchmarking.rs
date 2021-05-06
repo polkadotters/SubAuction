@@ -29,7 +29,8 @@ benchmarks! {
 		let token_data = TokenData { locked:false };
 		let class_data = 123;
 		let class_id = orml_nft::Module::<T>::create_class(&caller, class_metadata.clone(), class_data).unwrap_or_default();
-	}: _(RawOrigin::Signed(caller.clone()), class_id, class_metadata, token_data)
+		let token_quantity = 1;
+	}: _(RawOrigin::Signed(caller.clone()), class_id, class_metadata, token_data, token_quantity)
 	verify {
 	}
 
@@ -72,7 +73,7 @@ benchmarks! {
 mod tests {
 	use super::mock::Test;
 	use super::*;
-	use crate::mock::new_test_ext;
+	use crate::mock::*;
 	use frame_support::assert_ok;
 
 	pub fn new_test_ext() -> sp_io::TestExternalities {

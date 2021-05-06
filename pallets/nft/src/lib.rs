@@ -69,14 +69,18 @@ pub mod pallet {
 			class_id: <T as orml_nft::Config>::ClassId,
 			metadata: Vec<u8>,
 			token_data: TokenData,
+			quantity: u32,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
+			ensure!(quantity > Zero::zero(), Error::<T>::InvalidQuantity);
 			let class_info = orml_nft::Module::<T>::classes(class_id).ok_or(Error::<T>::ClassNotFound)?;
 			ensure!(sender == class_info.owner, Error::<T>::NoPermission);
-			let mut cloned_data = token_data;
-			cloned_data.locked = false;
-			let token_id = orml_nft::Module::<T>::mint(&sender, class_id, metadata, cloned_data)?;
-			Self::deposit_event(Event::NFTTokenMinted(sender, class_id, token_id));
+			let mut data = token_data;
+			data.locked = false;
+			for _ in 0..quantity {
+				orml_nft::Module::<T>::mint(&sender, class_id, metadata.clone(), data.clone())?;
+			}
+			Self::deposit_event(Event::NFTTokenMinted(sender, class_id, quantity));
 			Ok(().into())
 		}
 
@@ -131,7 +135,7 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		NFTTokenClassCreated(T::AccountId, T::ClassId),
-		NFTTokenMinted(T::AccountId, T::ClassId, T::TokenId),
+		NFTTokenMinted(T::AccountId, T::ClassId, u32),
 		NFTTokenMintedLockToggled(T::AccountId, T::ClassId, T::TokenId, bool),
 		NFTTokenTransferred(T::AccountId, T::AccountId, T::ClassId, T::TokenId),
 		NFTTokenBurned(T::AccountId, T::TokenId),
@@ -140,16 +144,12 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// ClassId not found
 		ClassNotFound,
-		/// TokenId not found
 		TokenNotFound,
-		/// The operator is not the owner of the token and has no permission
 		NoPermission,
-		/// Can not destroy class. Total issuance is not 0.
 		CannotDestroyClass,
-		/// Token locked
 		TokenLocked,
+		InvalidQuantity,
 	}
 }
 
