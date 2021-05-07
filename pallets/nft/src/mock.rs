@@ -90,6 +90,10 @@ impl pallet_balances::Config for Test {
 }
 
 pub const ALICE: AccountId = AccountId::new([1u8; 32]);
+pub const BOB: AccountId = AccountId::new([2u8; 32]);
+pub const CLASS_ID: <Test as orml_nft::Config>::ClassId = 0;
+pub const TEST_QUANTITY: u32 = 99;
+pub const TOKEN_ID: <Test as orml_nft::Config>::TokenId = 0;
 
 pub struct ExtBuilder;
 impl Default for ExtBuilder {
@@ -117,6 +121,6 @@ impl ExtBuilder {
 pub fn last_event() -> Event {
 	frame_system::Pallet::<Test>::events()
 		.pop()
-		.expect("Event expected")
+		.expect("An event expected")
 		.event
 }

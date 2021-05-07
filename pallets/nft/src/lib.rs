@@ -109,7 +109,7 @@ pub mod pallet {
 			ensure!(sender == token_info.owner, Error::<T>::NoPermission);
 			ensure!(!token_info.data.locked, Error::<T>::TokenLocked);
 			orml_nft::Module::<T>::burn(&sender, token)?;
-			Self::deposit_event(Event::NFTTokenBurned(sender, token.1));
+			Self::deposit_event(Event::NFTTokenBurned(sender, token.0, token.1));
 			Ok(().into())
 		}
 
@@ -138,7 +138,7 @@ pub mod pallet {
 		NFTTokenMinted(T::AccountId, T::ClassId, u32),
 		NFTTokenMintedLockToggled(T::AccountId, T::ClassId, T::TokenId, bool),
 		NFTTokenTransferred(T::AccountId, T::AccountId, T::ClassId, T::TokenId),
-		NFTTokenBurned(T::AccountId, T::TokenId),
+		NFTTokenBurned(T::AccountId, T::ClassId, T::TokenId),
 		NFTTokenClassDestroyed(T::AccountId, T::ClassId),
 	}
 
