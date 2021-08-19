@@ -19,24 +19,23 @@ fn create_nft() {
 }
 
 #[test]
-fn can_create_auction() {
+fn can_create_english_auction() {
 	new_test_ext().execute_with(|| {
-		let auction_info = AuctionInfo {
+		let auction_info = EnglishAuctionInfo {
 			name: "Aukce1".as_bytes().to_vec(),
 			last_bid: None,
 			start: 1,
 			end: 20,
 			owner: 100,
-			auction_type: AuctionType::English,
 			token_id: (0, 0),
 			minimal_bid: 50,
 		};
 		assert_noop!(
-			AuctionsModule::create_auction(Origin::signed(100), auction_info.clone()),
+			AuctionsModule::english_create_auction(Origin::signed(100), auction_info.clone()),
 			Error::<Test>::NotATokenOwner
 		);
 		create_nft();
-		assert_ok!(AuctionsModule::create_auction(Origin::signed(100), auction_info));
+		assert_ok!(AuctionsModule::english_create_auction(Origin::signed(100), auction_info));
 	});
 }
 
