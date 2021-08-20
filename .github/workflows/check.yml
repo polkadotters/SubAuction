@@ -43,8 +43,8 @@ jobs:
       - name: Tests
         run: time cargo test --all --release --locked
 
-      - name: Benchmarking tests
-        run: cd node && cargo test --release --features runtime-benchmarks -p pallet-nft -p pallet-auction
+      #- name: Benchmarking tests
+      #  run: cd node && cargo test --release --features runtime-benchmarks -p pallet-nft -p pallet-auction
       
       - name: Build release
         run: time cargo build --release
